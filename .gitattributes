@@ -1,0 +1,25 @@
+# Автоматически приводить окончания строк к LF при коммите в Git
+* text=auto eol=lf
+
+# Явно указать, что текстовые файлы должны использовать LF (защита от CRLF на Windows)
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+
+# Обозначить файлы конфигурации Docker
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+.env* text eol=lf
+
+# Бинарные файлы (картинки, шрифты) — Git не должен трогать их окончания строк
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
