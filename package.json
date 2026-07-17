@@ -1,7 +1,7 @@
 {
   "name": "schoolweek.ru",
   "version": "1.0.0",
-  "type": "commonjs",
+  "type": "module",
   "main": "src/index.ts",
   "scripts": {
     "dev": "tsx src/index.ts",
@@ -13,5 +13,8 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "mongoose": "^9.7.4"
   }
 }
