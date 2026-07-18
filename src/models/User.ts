@@ -1,26 +1,38 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
-const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: [true, 'Имя обязательно для заполнения'], // Валидация
-        trim: true,
-    },
+export interface IUser {
+    email: string;
+    password: string;
+    createdAt: Date;
+    comparePassword(candidate: string): Promise<boolean>;
+}
+
+const userSchema = new mongoose.Schema<IUser>({
     email: {
         type: String,
         required: true,
-        unique: true, // Создает уникальный индекс в MongoDB
+        unique: true,
         lowercase: true,
+        trim: true,
     },
-    role: {
+    password: {
         type: String,
-        enum: ['user', 'admin'], // Разрешены только эти значения
-        default: 'user',
+        required: true,
     },
     createdAt: {
         type: Date,
-        default: Date.now, // Автоматическая дата создания
-    }
+        default: Date.now,
+    },
 });
 
-export default mongoose.model('User', userSchema);
+userSchema.pre('save', async function () {
+    if (!this.isModified('password')) return;
+    this.password = await bcrypt.hash(this.password, 10);
+});
+
+userSchema.methods.comparePassword = function (candidate: string) {
+    return bcrypt.compare(candidate, this.password);
+};
+
+export default mongoose.model<IUser>('User', userSchema);

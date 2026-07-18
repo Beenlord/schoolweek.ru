@@ -1,22 +1,24 @@
 name: 'schoolweek.ru'
 
 services:
-  
+
   app:
     build: .
     environment:
-      DB_HOST: 'mariadb'
-      DB_NAME: 'schoolweek'
-      DB_PASS: 'kt0XCknc6gEzjapD'
+      MONGO_URI: 'mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/schoolweek?authSource=admin'
+    depends_on:
+      - mongodb
     container_name: 'app-schoolweek.ru'
-  
+
   mongodb:
     image: mongo:latest
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: kt0XCknc6gEzjapD
+      MONGO_INITDB_ROOT_USERNAME: '${MONGO_ROOT_USERNAME}'
+      MONGO_INITDB_ROOT_PASSWORD: '${MONGO_ROOT_PASSWORD}'
     volumes:
       - mongo_data:/data/db
+    ports:
+      - "27017:27017"
     container_name: 'mongo-schoolweek.ru'
 
 volumes:

@@ -8,8 +8,12 @@
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "esnext",
+    "moduleResolution": "bundler",
     "target": "esnext",
     "types": [],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
