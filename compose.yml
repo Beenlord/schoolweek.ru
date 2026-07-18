@@ -1,7 +1,7 @@
 name: 'schoolweek.ru'
 
 services:
-
+  
   app:
     build: .
     environment:
@@ -9,17 +9,15 @@ services:
       DB_NAME: 'schoolweek'
       DB_PASS: 'kt0XCknc6gEzjapD'
     container_name: 'app-schoolweek.ru'
+  
+  mongodb:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: kt0XCknc6gEzjapD
+    volumes:
+      - mongo_data:/data/db
+    container_name: 'mongo-schoolweek.ru'
 
-#  mariadb:
-#    image: mariadb:latest
-#    environment:
-#      MARIADB_DATABASE: 'schoolweek'
-#      MARIADB_USER: 'schoolweek'
-#      MARIADB_PASSWORD: 'kt0XCknc6gEzjapD'
-#      MARIADB_ROOT_PASSWORD: 'sNY8O7IzByrLoS7r'
-#    volumes:
-#      - mariadb_data:/var/lib/mysql
-#    container_name: 'db-schoolweek.ru'
-
-#volumes:
-#  mariadb_data:
+volumes:
+  mongo_data:
