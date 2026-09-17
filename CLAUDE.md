@@ -4,46 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-schoolweek.ru — backend API for a digital "school diary" app (nostalgia-driven weekly planner). The `web/` directory (PWA frontend) exists but is currently empty — this is a backend-only codebase for now.
+schoolweek.ru — an app for a digital "school diary": a nostalgia-driven weekly planner/schedule, styled after the paper school diary, built around a "week on one page" concept. See `README.md` (in Russian) for the product pitch and the outstanding TODO list (auth API, registration API, migrations, and a PWA frontend under `web/`, which doesn't exist yet).
 
-## Commands
+## Current state — mid-migration, not runnable yet
 
-```bash
-npm run dev       # tsx watch, runs src/index.ts directly against .env
-npm run build      # tsc && tsc-alias -> dist/ (resolves @/ path aliases in output)
-npm run start       # runs built dist/index.js, loads .env
-npm run openapi     # regenerates openapi.json from src/openapi/document.ts
-```
+The backend is being rewritten from a Node.js/TypeScript (Koa + Mongoose/MongoDB) API to **Laravel** (PHP). The old TypeScript source tree has been deleted; the new Laravel codebase is only a bare skeleton right now:
 
-There is no test suite and no lint script configured yet.
+- `composer.json` declares `laravel/framework ^11` and `laravel/sanctum ^4`, but `composer.lock` currently resolves **zero packages** — the framework has not actually been installed into `vendor/`.
+- `bootstrap/app.php`, `public/index.php`, `routes/api.php` are empty placeholder files (just an opening `<?php` tag).
+- `config/app.php` returns an empty array.
+- There is no `artisan`, no `app/` directory, no `.env`, and `database/migrations` / `database/seeders` exist but are empty.
 
-Local Mongo is provided via `compose.yml` (`docker compose up mongodb`) or point `MONGO_URI` in `.env` at any Mongo instance. `.env.example` documents the required variables (`PORT`, `HOST`, `MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD`, `MONGO_URI`).
+Because of this, **there are no working build/test/lint commands yet** — do not assume standard Laravel commands (`php artisan serve`, `composer install`, etc.) will succeed until the scaffold is actually filled in. Before adding application code, the project needs a real Laravel install (e.g. `composer create-project laravel/laravel` merged into this repo, or `composer update` after fixing `composer.json`) so `vendor/`, `artisan`, and the standard `app/` structure exist.
 
-## Architecture
+Also note: `.gitignore` was deleted as part of this migration and has not been replaced. `vendor/`, `composer.lock`'s companions, and `.idea/` are currently untracked/uncommitted — a Laravel-appropriate `.gitignore` (ignoring `/vendor`, `.env`, `.idea/`, etc.) should be restored before committing further, to avoid accidentally checking in dependencies or IDE config.
 
-Koa app with a strict layered structure — always follow the existing pattern for a resource rather than inventing a new one:
+## Prior architecture (for reference during migration)
 
-```
-routes/*.ts        -> @koa/router route tables, apply requireAuth middleware here
-controllers/*.ts    -> parse/validate ctx.request.body|params|query with zod, call a service, set ctx.body/status
-services/*.ts        -> business logic + Mongoose queries, throw HttpError for expected failures
-models/*.ts           -> Mongoose schemas/models
-schemas/*.ts           -> zod schemas, shared between controller validation AND openapi/document.ts
-```
+The deleted Node/Koa API is still useful context for parity when rebuilding equivalent endpoints in Laravel:
 
-- Controllers never talk to Mongoose directly; services never touch `ctx`. Keep that boundary when adding endpoints.
-- Path alias `@/*` maps to `src/*` (configured in `tsconfig.json` and resolved at build time by `tsc-alias`). Always import via `@/...`, not relative paths across directories.
-- Errors: throw `HttpError(status, message)` (`src/errors/HttpError.ts`) from services for expected failures (404, 409, etc). The global error middleware in `src/index.ts` catches it and writes `{ error: message }`. Zod validation failures are handled inline in the controller instead (400 with the first issue message), not via HttpError.
-- Auth is a custom bearer-token session model, not JWT: `Session` documents store a random token (`src/utils/token.ts`) with a `expiresAt` TTL index (Mongo auto-expires the doc). `requireAuth` middleware (`src/middleware/auth.ts`) looks up the session and sets `ctx.state.userId`. Apply `requireAuth` per-route (see `routes/schedule.ts` using `router.use(requireAuth)` for all schedule routes) or per-handler (see `routes/auth.ts` logout only).
-- `src/seed.ts` creates a single admin user (`config.admin`) on startup if the `User` collection is empty — this is the only bootstrap/fixture mechanism, there are no migrations yet (see README TODO).
-- OpenAPI spec (`openapi.json`) is generated code, built from `src/openapi/document.ts` which reuses the same zod schemas as request/response validation via `z.toJSONSchema(schema, { target: 'openapi-3.0' })`. When adding/changing an endpoint or its schema, update `src/openapi/document.ts` too and re-run `npm run openapi`.
-- Schedule model represents each day as a document keyed by `(userId, date)` with soft-delete (`deletedAt`) rather than hard delete, to support the PWA's offline sync flow:
-  - `GET /schedule/sync?since=<ISO>` returns changes since a timestamp (including soft-deleted entries marked `deleted: true`) for incremental local-storage sync.
-  - `POST /schedule/batch` applies multiple upserts/deletes in one `bulkWrite` round-trip for syncing accumulated offline changes.
-  - Regular `GET/PUT/DELETE /schedule/:date` are the direct single-day CRUD operations.
-- `dist/` is committed build output — do not hand-edit it; it's regenerated by `npm run build`.
+- Resources: auth (bearer-token sessions, not JWT), users, schedule (day-keyed by `(userId, date)` with soft-delete for offline PWA sync via `/schedule/sync?since=` and a `/schedule/batch` bulk endpoint), health, and an OpenAPI document generated from the same validation schemas.
+- Data lived in MongoDB via Mongoose; the new stack should decide on Laravel's persistence layer (likely Eloquent/MySQL or Postgres, or `mongodb/laravel-mongodb` if MongoDB is being kept) as part of the migration.
 
-## TypeScript config notes
-
-- ESM (`"type": "module"` in package.json), `moduleResolution: bundler`, target `esnext`.
-- `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` are enabled — index access and optional properties are typed strictly.
+Confirm actual endpoint/data-model parity requirements with the project owner before porting logic — don't assume 1:1 translation is wanted.
