@@ -1,0 +1,54 @@
+name: 'Lemonade'
+
+services:
+
+  app:
+    build: .
+    volumes:
+      - .:/var/www/html
+      - storage_data:/var/www/html/storage
+      - vendor_data:/var/www/html/vendor
+    environment:
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      DB_HOST: ${DB_HOST:-mariadb}
+      DB_DATABASE: ${DB_DATABASE:-${APP_NAME}}
+      DB_USERNAME: ${DB_USERNAME:-${APP_NAME}}
+      DB_PASSWORD: ${DB_PASSWORD:-${APP_NAME}}
+    ports:
+      - "8000:8000"
+    networks:
+      - default
+    depends_on:
+      - mariadb
+      - redis
+    container_name: "${APP_NAME}_0_APP"
+
+  mariadb:
+    image: mariadb:11.1
+    volumes:
+      - mdb_data:/var/lib/mysql
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE:-${APP_NAME}}
+      MARIADB_USER: ${DB_USERNAME:-${APP_NAME}}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-${APP_NAME}}
+      MARIADB_ROOT_PASSWORD: root
+    networks:
+      - default
+    container_name: "${APP_NAME}_1_DB"
+
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    networks:
+      - default
+    container_name: "${APP_NAME}_2_REDIS"
+
+networks:
+  default:
+
+volumes:
+  storage_data:
+  vendor_data:
+  redis_data:
+  mdb_data:

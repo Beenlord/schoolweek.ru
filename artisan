@@ -1,0 +1,15 @@
+#!/usr/bin/env php
+<?php
+
+use Symfony\Component\Console\Input\ArgvInput;
+
+define('LARAVEL_START', microtime(true));
+
+if (!file_exists($autoload = realpath(__DIR__ . '/vendor/autoload.php'))) {
+	echo 'Missing Composer autoload file. Run `composer install`.'; exit();
+} else require $autoload;
+
+$status = (require __DIR__ . '/bootstrap/app.php')
+    ->handleCommand(new ArgvInput);
+
+exit($status);
