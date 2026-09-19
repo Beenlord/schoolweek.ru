@@ -1,6 +1,17 @@
 {
   "name": "lemonade",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
   "dependencies": {
+    "@inertiajs/vite": "^3.7.1",
+    "@inertiajs/vue3": "^3.7.1",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "laravel-vite-plugin": "^3.2.0",
+    "vite": "^8.3.0",
     "vue": "^3.5.43"
   }
 }
