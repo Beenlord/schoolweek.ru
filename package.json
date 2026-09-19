@@ -1,3 +1,6 @@
 {
-  "name": "lemonade"
+  "name": "lemonade",
+  "dependencies": {
+    "vue": "^3.5.43"
+  }
 }
