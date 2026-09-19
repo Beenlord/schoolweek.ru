@@ -38,7 +38,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN addgroup -g 1000 www \
     && adduser -u 1000 -G www -s /bin/sh -D www
 
-FROM composer:2 AS composer
+FROM vovikko/alpine-php-fpm:8.4 AS vendor
 
 WORKDIR /tmp
 COPY composer.json composer.lock ./
@@ -50,7 +50,7 @@ RUN composer install \
     --optimize-autoloader \
     --ignore-platform-reqs
 
-FROM base
+FROM vovikko/alpine-php-fpm:8.4
 
 USER root
 
@@ -60,6 +60,6 @@ COPY . .
 RUN dos2unix ./scripts/entrypoint.sh \
     && chmod +x ./scripts/entrypoint.sh
 
-COPY --from=composer ./tmp/vendor vendor
+COPY --from=vendor ./tmp/vendor vendor
 
 ENTRYPOINT ["./scripts/entrypoint.sh"]

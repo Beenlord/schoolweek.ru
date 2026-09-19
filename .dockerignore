@@ -1,0 +1,46 @@
+# VCS / IDE
+.git
+.gitattributes
+.gitignore
+.idea
+.fleet
+.nova
+.vscode
+.zed
+
+# Dependencies (installed inside the image)
+/vendor
+/node_modules
+
+# Secrets / local config
+.env
+.env.backup
+.env.production
+.env.example
+auth.json
+
+# Build & test artifacts
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+.phpunit.cache
+.phpunit.result.cache
+
+# Logs & misc
+npm-debug.log
+yarn-error.log
+Homestead.json
+Homestead.yaml
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+compose.yml
+
+# Docs
+README.md
+CLAUDE.md
