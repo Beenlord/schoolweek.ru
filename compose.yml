@@ -19,8 +19,10 @@ services:
     networks:
       - default
     depends_on:
-      - mariadb
-      - redis
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     container_name: "${APP_NAME}_0_APP"
 
   mariadb:
@@ -32,6 +34,12 @@ services:
       MARIADB_USER: ${DB_USERNAME:-${APP_NAME}}
       MARIADB_PASSWORD: ${DB_PASSWORD:-${APP_NAME}}
       MARIADB_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       - default
     container_name: "${APP_NAME}_1_DB"
@@ -40,6 +48,12 @@ services:
     image: redis:7
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     networks:
       - default
     container_name: "${APP_NAME}_2_REDIS"
