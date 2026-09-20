@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -10,6 +11,16 @@ return Application::configure(basePath: dirname(__DIR__))
         api: routes_path('api.php'),
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // За приложением на проде стоит nginx (см. /etc/nginx/sites-*/lemon.vfomin.com),
+        // который терминирует HTTPS и проксирует на контейнер по обычному HTTP, выставляя
+        // X-Forwarded-*. Запрос до контейнера идёт через Docker NAT (port mapping), поэтому
+        // реальный IP nginx на месте "доверенного прокси" заранее не известен — доверяем
+        // всем источникам (at: '*').
+        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_HOST
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_PROTO);
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
