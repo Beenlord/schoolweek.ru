@@ -113,14 +113,6 @@ function closeDay(day) {
     saveDay(day);
 }
 
-// Если среди дней недели есть сегодняшний — значит, уже смотрим текущую неделю, кнопку возврата
-// показывать незачем.
-const isCurrentWeek = computed(() => editableDays.some((d) => d.isToday));
-
-function goToToday() {
-    router.get('/now', {}, { preserveScroll: true });
-}
-
 // Переключение недели переиспользует уже готовый /now?date= на бэкенде (см. NowController) —
 // достаточно передать любую дату внутри целевой недели, сервер сам посчитает её границы.
 function goToWeek(offsetDays) {
@@ -159,57 +151,27 @@ function onTouchEnd(e) {
 
 <template>
     <AppLayout>
-        <div class="Now NowPage">
+        <div class="Now NowPage flex h-full min-h-0 flex-col">
             <p
                 v-if="!isOnline"
-                class="mb-4 rounded-lg border border-accent-dark bg-today px-4 py-2 text-sm font-semibold text-ink"
+                class="mb-4 shrink-0 rounded-lg border border-accent-dark bg-today px-4 py-2 text-sm font-semibold text-ink"
             >
                 Офлайн — показаны последние сохранённые данные, правки отправятся при восстановлении сети.
             </p>
 
-            <div class="mb-4 flex items-center justify-between gap-4">
-                <h1 class="text-xl font-bold text-ink sm:text-2xl">
-                    {{ MONTHS[month - 1] }} {{ year }}
-                    <span class="font-normal text-ink-muted">— неделя {{ week }}</span>
-                </h1>
-
-                <div class="flex shrink-0 items-center gap-2">
-                    <button
-                        v-if="!isCurrentWeek"
-                        type="button"
-                        class="rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:bg-accent-dark"
-                        @click="goToToday"
-                    >
-                        Сегодня
-                    </button>
-
-                    <div class="hidden items-center gap-2 md:flex">
-                        <button
-                            type="button"
-                            class="rounded-full border border-paper-line px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-accent-dark"
-                            @click="goToWeek(-7)"
-                        >
-                            ← Назад
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded-full border border-paper-line px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-accent-dark"
-                            @click="goToWeek(7)"
-                        >
-                            Вперёд →
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <h1 class="mb-2 shrink-0 text-base font-bold text-ink sm:text-xl">
+                {{ MONTHS[month - 1] }} {{ year }}
+                <span class="font-normal text-ink-muted">— неделя {{ week }}</span>
+            </h1>
 
             <div
-                class="grid grid-cols-2 grid-rows-3 grid-flow-col gap-1.5 sm:gap-3 md:gap-4"
+                class="grid min-h-0 flex-1 grid-cols-2 grid-rows-3 grid-flow-col gap-1.5 sm:gap-3 md:gap-4"
                 @touchstart.passive="onTouchStart"
                 @touchend.passive="onTouchEnd"
             >
                 <template v-for="day in [monday, tuesday, wednesday]" :key="day.date">
                     <article
-                        class="ruled-margin flex min-h-[5.5rem] cursor-text flex-col rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:min-h-[9rem] sm:p-3"
+                        class="ruled-margin flex min-h-0 cursor-text flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
                         :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
@@ -218,7 +180,7 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper flex-1 [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper min-h-0 flex-1 overflow-hidden [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
@@ -239,7 +201,7 @@ function onTouchEnd(e) {
 
                 <template v-for="day in [thursday, friday]" :key="day.date">
                     <article
-                        class="ruled-margin flex min-h-[5.5rem] cursor-text flex-col rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:min-h-[9rem] sm:p-3"
+                        class="ruled-margin flex min-h-0 cursor-text flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
                         :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
@@ -248,7 +210,7 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper flex-1 [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper min-h-0 flex-1 overflow-hidden [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
@@ -269,11 +231,11 @@ function onTouchEnd(e) {
 
                 <!-- Сб/Вс: визуально одна клетка, как в бумажном дневнике, но фактически два
                      независимых поля вдвое меньшей высоты (см. README, «Концепция»). -->
-                <div class="grid grid-rows-2 gap-1.5 sm:gap-3 md:gap-4">
+                <div class="grid min-h-0 grid-rows-2 gap-1.5 sm:gap-3 md:gap-4">
                     <article
                         v-for="day in [saturday, sunday]"
                         :key="day.date"
-                        class="ruled-margin flex min-h-[2.75rem] cursor-text flex-col rounded-lg bg-paper p-1 shadow-sm ring-1 ring-paper-line/70 sm:min-h-[4.25rem] sm:p-2.5"
+                        class="ruled-margin flex min-h-0 cursor-text flex-col overflow-hidden rounded-lg bg-paper p-1 shadow-sm ring-1 ring-paper-line/70 sm:p-2.5"
                         :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
@@ -282,7 +244,7 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper flex-1 [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper min-h-0 flex-1 overflow-hidden [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
@@ -302,5 +264,29 @@ function onTouchEnd(e) {
                 </div>
             </div>
         </div>
+
+        <template #bottom-bar>
+            <button
+                type="button"
+                aria-label="Предыдущая неделя"
+                class="flex h-11 w-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                @click="goToWeek(-7)"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                    <path d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+
+            <button
+                type="button"
+                aria-label="Следующая неделя"
+                class="flex h-11 w-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                @click="goToWeek(7)"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                    <path d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        </template>
     </AppLayout>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
@@ -24,12 +24,25 @@ function submit() {
         onSuccess: () => form.reset('current_password', 'password', 'password_confirmation', 'secret_answer'),
     });
 }
+
+function logout() {
+    router.post('/logout');
+}
 </script>
 
 <template>
     <AppLayout>
         <div class="Me MePage mx-auto max-w-lg">
-            <h1 class="mb-5 text-xl font-bold text-ink sm:text-2xl">Профиль</h1>
+            <div class="mb-5 flex items-center justify-between">
+                <h1 class="text-xl font-bold text-ink sm:text-2xl">Профиль</h1>
+                <button
+                    type="button"
+                    class="rounded-full border border-paper-line px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-accent-dark"
+                    @click="logout"
+                >
+                    Выйти
+                </button>
+            </div>
 
             <form class="ruled-paper flex flex-col gap-4 rounded-xl bg-paper p-6 shadow-sm ring-1 ring-paper-line/70" @submit.prevent="submit">
                 <div>
