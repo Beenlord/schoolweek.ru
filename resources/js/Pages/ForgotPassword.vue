@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { xsrfToken } from '@/csrf.js';
 
 const step = ref(1);
 const email = ref('');
@@ -9,11 +10,6 @@ const password = ref('');
 const passwordConfirmation = ref('');
 const error = ref('');
 const processing = ref(false);
-
-function xsrfToken() {
-    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
-    return match ? decodeURIComponent(match[1]) : '';
-}
 
 async function callApi(url, body) {
     processing.value = true;

@@ -32,12 +32,18 @@ class NowController extends Controller
             ->get()
             ->keyBy(fn (Day $day) => $day->date->toDateString());
 
-        $days = $dates->map(fn (CarbonImmutable $d) => [
-            'date' => $d->toDateString(),
-            'weekday' => $d->dayOfWeekIso, // 1 = Пн ... 7 = Вс
-            'content' => $existing->get($d->toDateString())?->content,
-            'isToday' => $d->toDateString() === $today,
-        ])->all();
+        $days = $dates->map(function (CarbonImmutable $d) use ($existing, $today) {
+            $day = $existing->get($d->toDateString());
+
+            return [
+                'date' => $d->toDateString(),
+                'weekday' => $d->dayOfWeekIso, // 1 = Пн ... 7 = Вс
+                'content' => $day?->content,
+                // Клиент кэширует это в IndexedDB для офлайн-показа/сверки при синхронизации.
+                'updatedAt' => $day?->updated_at?->toIso8601String(),
+                'isToday' => $d->toDateString() === $today,
+            ];
+        })->all();
 
         return Inertia::render('Now', [
             'year' => $info['year'],

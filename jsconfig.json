@@ -5,9 +5,10 @@
         "moduleResolution": "bundler",
         "baseUrl": ".",
         "paths": {
-            "@/*": ["resources/js/*"]
+            "@/*": ["resources/js/*"],
+            "@css/*": ["resources/css/*"]
         }
     },
     "include": ["resources/js/**/*.js", "resources/js/**/*.vue"],
-    "exclude": ["node_modules", "public"]
+"exclude": ["node_modules", "public"]
 }

@@ -13,6 +13,13 @@ Route::post('/password/reset', [PasswordRecoveryController::class, 'reset'])->na
 // аутентификация»), не самостоятельный публичный API.
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/weeks/{date}', [DayController::class, 'week'])->name('api.weeks.show');
+
+    // Офлайн-синхронизация (см. README, «Offline и PWA»): sync — подтянуть чужие правки, batch —
+    // отправить накопленные локально. Должны идти раньше /days/{date} — иначе wildcard-роут
+    // перехватит /days/sync, приняв «sync» за значение {date}.
+    Route::get('/days/sync', [DayController::class, 'sync'])->name('api.days.sync');
+    Route::post('/days/batch', [DayController::class, 'batch'])->name('api.days.batch');
+
     Route::get('/days/{date}', [DayController::class, 'show'])->name('api.days.show');
     Route::put('/days/{date}', [DayController::class, 'update'])->name('api.days.update');
 });

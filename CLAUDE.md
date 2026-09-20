@@ -28,9 +28,41 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
 - **Frontend**: `inertiajs/inertia-laravel` ^3.3 + Vue 3 (server-driven SPA, no separate `web/` app). Pages live in
   `resources/js/Pages/*.vue`, rendered via `Inertia::render(...)` from controllers. Build tooling is wired up:
   `resources/js/app.js` bootstraps `createInertiaApp` (page resolution via `import.meta.glob('./Pages/**/*.vue')`),
-  `vite.config.js` registers `laravel-vite-plugin` + `@vitejs/plugin-vue` and an `@` → `resources/js` alias (mirrored
-  in `jsconfig.json` for editor IntelliSense), and `package.json` has `dev`/`build` npm scripts (`"type": "module"`
-  set since all frontend tooling here is ESM-only). `npm run build`/`npm run dev` both work.
+  `vite.config.js` registers `laravel-vite-plugin` + `@vitejs/plugin-vue` and `@` → `resources/js` / `@css` →
+  `resources/css` aliases (both mirrored in `jsconfig.json` for editor IntelliSense), and `package.json` has
+  `dev`/`build` npm scripts (`"type": "module"` set since all frontend tooling here is ESM-only). `npm run
+  build`/`npm run dev` both work.
+- **Styling**: Tailwind CSS 4 (`tailwindcss` + `@tailwindcss/vite` in `devDependencies`) via CSS-first config —
+  `resources/css/app.scss` is just `@import "tailwindcss";`, imported from `resources/js/app.js`. `sass` is also a
+  devDependency for `.scss` beyond that. No actual design/component styling written yet.
+- **PWA**: `vite-plugin-pwa` (`devDependencies`) is registered in `vite.config.js`, wired for Laravel's lack of a
+  Vite-processed HTML entry: `injectRegister: false` (auto-injection has nowhere to attach — Vite only ever sees
+  `resources/js/app.js` via `@vite()`, never `resources/views/app.blade.php`), manual registration instead via
+  `import { registerSW } from 'virtual:pwa-register'` in `app.js`, and a hand-written `<link rel="manifest"
+  href="/manifest.webmanifest">` + `<meta name="theme-color">` in `app.blade.php` (`manifest.webmanifest` is the
+  plugin's default output filename — don't rename one side without the other). `devOptions.enabled: true` so the SW
+  and manifest also build under `npm run dev`, not just `vite build`. Manifest content (name/description/
+  theme_color/start_url `/now`/categories) is filled in for the project; `theme_color`/`background_color` are
+  explicitly placeholder lemon-yellow pending real design.
+  **Still missing**: the referenced icon files (`pwa-192x192.png`/`pwa-512x512.png`) don't exist under `public/` —
+  intentionally left dangling for now, project owner will add real ones later.
+- **Offline sync for `/now`** (only page that's offline-capable — everything else needs the server, see Product spec
+  below): `vite.config.js`'s `VitePWA({ workbox: { runtimeCaching: [...] } })` caches navigations to `/now`
+  specifically (`NetworkFirst`, 3s timeout) — not app-shell-wide `navigateFallback`, since Workbox's fallback
+  mechanism expects a precached static file and there isn't one (every Laravel route is server-rendered per
+  request); this only makes reload/reopen of `/now` work offline, not in-app Inertia navigation *to* `/now` from
+  elsewhere while offline. `resources/js/offline/db.js` (`idb` wrapper, single `days` store keyed by `date`, a
+  `dirty` field + index for unsynced local edits) is the actual source of truth for what `/now` displays when
+  offline — `Pages/Now.vue`'s `onMounted` overwrites the (possibly stale, cached-HTML) props with IndexedDB's state
+  when `!navigator.onLine`. `resources/js/offline/sync.js` pushes dirty days to `POST /api/days/batch` then pulls
+  `GET /api/days/sync?since=<cursor>` (cursor = server's own clock from the last sync, in `localStorage`, to avoid
+  client clock drift) — wired to run on app boot and on the `online` event in `app.js`.
+  `App\Http\Controllers\Api\DayController::batch()` resolves conflicts last-write-wins by the *client's claimed
+  edit timestamp*, not receipt time (a slow-to-arrive offline edit must not beat a genuinely newer edit from
+  another device) — and forces `$day->timestamps = false` before manually setting `updated_at` to that timestamp,
+  since Eloquent's auto-touch would otherwise stamp it with server-receipt time instead. Day editing on `/now` is
+  currently a bare `<textarea>` per day (autosave on blur) — proves the save/offline-queue mechanism, not the
+  planned modal WYSIWYG editor from the product spec.
 - **Database**: MariaDB (`config/database.php` default connection is `mariadb`, not Laravel's stock `sqlite`).
 - **Cache/Queue/Sessions**: Redis for cache and queue (`config/cache.php`, `config/queue.php` both default to
   `redis`); sessions default to Laravel's stock `database` driver (`config/session.php`) — this currently requires
@@ -56,12 +88,13 @@ implementing schedule/day or auth features. Highlights, so context isn't lost if
 - **Responsive**: must be comfortable on desktop/tablet/phone, not just non-broken. Week-swipe gets a button
   fallback (prev/next), hidden below a 768px viewport-width breakpoint (phone — swipe is the only nav there),
   shown at ≥768px (tablet/desktop) — breakpoint is by width, not `pointer: coarse/fine`, since tablets are touch too.
-- **Offline / PWA**: this WAS out of scope, the project owner reversed that decision — now required. Installable
-  (`manifest.json`, `display: standalone`), offline-capable via IndexedDB (last-loaded week/days stay viewable and
-  editable without a connection), unsynced edits queue locally and auto-push on reconnect. Conflict resolution is
-  **last-write-wins by edit timestamp**, no manual-merge UI. Chosen tooling: `vite-plugin-pwa` for the service
-  worker/manifest (not yet installed — needs `npm install` from the user, see workflow rule above). Mirrors the old
-  Node API's `/schedule/sync?since=` + `/schedule/batch` pattern, see "Prior architecture" below.
+- **Offline / PWA**: this WAS out of scope, the project owner reversed that decision — now required, and built (see
+  "Stack" above for the concrete mechanism: `vite-plugin-pwa` + IndexedDB via `idb` + `DayController::sync`/`batch`).
+  Installable (`manifest.json`, `display: standalone`); only `/now` is offline-capable — last-loaded week/days stay
+  viewable and editable without a connection, unsynced edits queue locally and auto-push on reconnect. Conflict
+  resolution is **last-write-wins by edit timestamp**, no manual-merge UI. Mirrors the old Node API's
+  `/schedule/sync?since=` + `/schedule/batch` pattern, see "Prior architecture" below. Still needed: icon files
+  (see "Stack"), and the real modal WYSIWYG day editor (`/now` currently just autosaves a plain `<textarea>`).
 - Explicitly **out of scope for MVP**: multi-user sharing, reminders/notifications, day version history (only
   current state is stored), markdown beyond basic (lists/emphasis — no tables etc.), manual conflict-resolution UI
   (conflicts auto-resolve, see Offline/PWA above).
