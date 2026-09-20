@@ -184,7 +184,7 @@ function onTouchEnd(e) {
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
-                                autofocus
+                                :ref="(el) => el?.focus()"
                                 class="h-full w-full resize-none bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @blur="closeDay(day)"
@@ -214,7 +214,7 @@ function onTouchEnd(e) {
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
-                                autofocus
+                                :ref="(el) => el?.focus()"
                                 class="h-full w-full resize-none bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @blur="closeDay(day)"
@@ -248,7 +248,7 @@ function onTouchEnd(e) {
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
-                                autofocus
+                                :ref="(el) => el?.focus()"
                                 class="h-full w-full resize-none bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @blur="closeDay(day)"

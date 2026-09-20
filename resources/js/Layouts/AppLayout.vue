@@ -17,28 +17,30 @@ const isProfileActive = () => page.url.startsWith('/me');
         <!-- Нижняя панель в духе Instagram: логотип слева — он же кнопка «домой» (на /now,
              текущая неделя, с любой страницы), место действий конкретной страницы (например,
              переключение недель на /now) посередине, вкладка «Профиль» — всегда справа. -->
-        <nav class="z-10 flex shrink-0 items-center justify-around border-t-2 border-paper-line bg-paper/95 py-1.5 backdrop-blur">
-            <a
-                href="/now"
-                aria-label="На главную"
-                class="flex h-11 w-11 items-center justify-center rounded-full text-xl leading-none transition-colors hover:bg-today/60"
-            >
-                🍹
-            </a>
+        <nav class="z-10 shrink-0 border-t-2 border-paper-line bg-paper/95 py-1.5 backdrop-blur">
+            <div class="mx-auto flex w-full max-w-5xl items-center justify-around px-4 sm:px-6">
+                <a
+                    href="/now"
+                    aria-label="На главную"
+                    class="flex h-11 w-11 items-center justify-center rounded-full text-xl leading-none transition-colors hover:bg-today/60"
+                >
+                    🍹
+                </a>
 
-            <slot name="bottom-bar" />
+                <slot name="bottom-bar" />
 
-            <a
-                href="/me"
-                aria-label="Профиль"
-                class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-today/60"
-                :class="isProfileActive() ? 'text-accent-dark' : 'text-ink-muted'"
-            >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                </svg>
-            </a>
+                <a
+                    href="/me"
+                    aria-label="Профиль"
+                    class="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-today/60"
+                    :class="isProfileActive() ? 'text-accent-dark' : 'text-ink-muted'"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                </a>
+            </div>
         </nav>
     </div>
 </template>
