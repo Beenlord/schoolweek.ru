@@ -8,7 +8,7 @@
     {{-- vite-plugin-pwa не может инжектить эти теги сам (Vite не обрабатывает эту Blade-страницу как HTML-энтрипоинт
          — см. комментарий у injectRegister в vite.config.js), поэтому manifest.webmanifest — стандартное имя,
          которое генерирует плагин — и theme-color прописаны здесь руками. --}}
-    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="manifest" href="/build/manifest.webmanifest">
     <meta name="theme-color" content="#fbc02d">
 
     @vite('resources/js/app.js')
