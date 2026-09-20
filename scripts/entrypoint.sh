@@ -5,7 +5,7 @@ chmod -R 775 /app/bootstrap/cache/ /app/storage/
 
 composer dump-autoload --no-interaction --optimize
 
-php artisan env:encrypt
+grep -q "^APP_KEY=base64:" .env || php artisan key:generate
 
 php artisan migrate --force
 
