@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow rule — no command execution
+
+Only write/edit code and files. Do not run shell commands of any kind in this repository — no `composer`, `npm`,
+`npx`, `vite`, `artisan`, `docker`, `git commit`/`push`, test runners, etc. — even to verify a change (build, lint,
+test, migrate). This explicitly includes frontend commands: `npm run dev`, `npm run build`, `npm install`/`npm ci`,
+running `vite` directly, or any other Node/npm-based tooling in this repo. The user runs every command themselves.
+If a change needs verification (e.g. "does this build"), say so and let the user run it, rather than running it.
+This applies to every request in this repo, not just the one that set it.
+
 ## Project
 
 schoolweek.ru ("Lemonade") — a digital "school diary": a nostalgia-driven weekly planner/schedule, styled after the
