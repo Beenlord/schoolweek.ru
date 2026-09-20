@@ -53,9 +53,18 @@ implementing schedule/day or auth features. Highlights, so context isn't lost if
 - **Users**: `name` + `email` (login) + `password` + `timezone` (client auto-detected at registration, user-editable)
   + a secret question/answer pair for password recovery. No email verification, no password-reset email flow — MVP
   recovery is entirely secret-question-based. No surname, no sharing/collaboration between users (out of scope).
+- **Responsive**: must be comfortable on desktop/tablet/phone, not just non-broken. Week-swipe gets a button
+  fallback (prev/next), hidden below a 768px viewport-width breakpoint (phone — swipe is the only nav there),
+  shown at ≥768px (tablet/desktop) — breakpoint is by width, not `pointer: coarse/fine`, since tablets are touch too.
+- **Offline / PWA**: this WAS out of scope, the project owner reversed that decision — now required. Installable
+  (`manifest.json`, `display: standalone`), offline-capable via IndexedDB (last-loaded week/days stay viewable and
+  editable without a connection), unsynced edits queue locally and auto-push on reconnect. Conflict resolution is
+  **last-write-wins by edit timestamp**, no manual-merge UI. Chosen tooling: `vite-plugin-pwa` for the service
+  worker/manifest (not yet installed — needs `npm install` from the user, see workflow rule above). Mirrors the old
+  Node API's `/schedule/sync?since=` + `/schedule/batch` pattern, see "Prior architecture" below.
 - Explicitly **out of scope for MVP**: multi-user sharing, reminders/notifications, day version history (only
-  current state is stored), markdown beyond basic (lists/emphasis — no tables etc.), offline/PWA sync (not carried
-  over from the old Node API below).
+  current state is stored), markdown beyond basic (lists/emphasis — no tables etc.), manual conflict-resolution UI
+  (conflicts auto-resolve, see Offline/PWA above).
 
 ## Current state / gaps to be aware of
 
@@ -107,4 +116,8 @@ its shape is useful context when deciding what the Laravel equivalents should lo
   document generated from the same validation schemas (now the role `dedoc/scramble` fills).
 
 Confirm actual endpoint/data-model parity requirements with the project owner before porting logic — don't assume
-1:1 translation from the old API is wanted.
+1:1 translation from the old API is wanted. One confirmed exception: the project owner explicitly asked for the
+offline-sync pattern (`/schedule/sync?since=` + `/schedule/batch`, soft-delete) back — see "Product spec (MVP)"
+above, "Offline / PWA" — so that piece can be ported/adapted rather than re-derived from scratch. Note the old API's
+`content` field wasn't user-facing markdown rendered live the same way — check current requirements before assuming
+other fields transfer as-is.
