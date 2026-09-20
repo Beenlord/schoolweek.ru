@@ -31,7 +31,11 @@ const editingDate = ref(null);
 // и сразу стираем, чтобы обычная перезагрузка страницы анимацию не повторяла.
 const weekNavDir = sessionStorage.getItem('weekNavDir');
 sessionStorage.removeItem('weekNavDir');
-const weekAnimClass = weekNavDir === 'next' ? 'week-enter-next' : weekNavDir === 'prev' ? 'week-enter-prev' : '';
+// Летит и накрывает соседнюю половину только та половина, В КОТОРУЮ СТОРОНУ идёт переключение:
+// «вперёд» (и свайп влево) — левая половина (Пн–Ср) складывается и накрывает правую,
+// «назад» (свайп вправо) — наоборот, правая накрывает левую.
+const leftFlipClass = weekNavDir === 'next' ? 'flip-page-cover' : '';
+const rightFlipClass = weekNavDir === 'prev' ? 'flip-page-cover' : '';
 
 window.addEventListener('online', () => { isOnline.value = true; });
 window.addEventListener('offline', () => { isOnline.value = false; });
@@ -160,7 +164,7 @@ function onTouchEnd(e) {
 </script>
 
 <template>
-    <AppLayout>
+    <AppLayout fit>
         <div class="Now NowPage flex h-full min-h-0 flex-col">
             <p
                 v-if="!isOnline"
@@ -174,12 +178,27 @@ function onTouchEnd(e) {
                 <span class="font-normal text-ink-muted">— неделя {{ week }}</span>
             </h1>
 
+            <!-- Никакого overflow здесь: во время переворота створка выходит за пределы сетки,
+                 и любой клиппинг по дороге режет анимацию. Полос прокрутки при этом не будет —
+                 обрежет корень layout'а (h-dvh overflow-hidden), уже по краю экрана. -->
             <div
-                class="grid min-h-0 flex-1 grid-cols-2 grid-rows-3 grid-flow-col gap-1.5 sm:gap-3 md:gap-4"
-                :class="weekAnimClass"
+                class="grid min-h-0 flex-1 grid-cols-2 gap-1.5 bg-paper sm:gap-3 md:gap-4"
                 @touchstart.passive="onTouchStart"
                 @touchend.passive="onTouchEnd"
             >
+                <div class="relative min-h-0">
+                <!-- Пустой разворот-заглушка: пока створка отвёрнута, её колонка иначе зияет
+                     фоном страницы. Повторяет форму клеток, кликов не перехватывает. -->
+                <div class="pointer-events-none absolute inset-0 z-0 grid grid-rows-3 gap-1.5 sm:gap-3 md:gap-4" aria-hidden="true">
+                    <div
+                        v-for="n in 3"
+                        :key="n"
+                        class="ruled-paper ruled-margin rounded-lg bg-paper ring-1 ring-paper-line/50 [--line-h:1rem] sm:[--line-h:1.5rem]"
+                    ></div>
+                </div>
+
+                <div class="flip-left h-full min-h-0" :class="leftFlipClass">
+                <div class="flip-page-face grid h-full min-h-0 grid-rows-3 gap-1.5 sm:gap-3 md:gap-4">
                 <template v-for="day in [monday, tuesday, wednesday]" :key="day.date">
                     <article
                         class="ruled-margin flex min-h-0 cursor-text flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
@@ -209,7 +228,28 @@ function onTouchEnd(e) {
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
                     </article>
                 </template>
+                </div>
+                </div>
+                </div>
 
+                <div class="relative min-h-0">
+                <div class="pointer-events-none absolute inset-0 z-0 grid grid-rows-3 gap-1.5 sm:gap-3 md:gap-4" aria-hidden="true">
+                    <div
+                        v-for="n in 2"
+                        :key="n"
+                        class="ruled-paper ruled-margin rounded-lg bg-paper ring-1 ring-paper-line/50 [--line-h:1rem] sm:[--line-h:1.5rem]"
+                    ></div>
+                    <div class="grid grid-rows-2 gap-1.5 sm:gap-3 md:gap-4">
+                        <div
+                            v-for="n in 2"
+                            :key="n"
+                            class="ruled-paper ruled-margin rounded-lg bg-paper ring-1 ring-paper-line/50 [--line-h:1rem] sm:[--line-h:1.5rem]"
+                        ></div>
+                    </div>
+                </div>
+
+                <div class="flip-right h-full min-h-0" :class="rightFlipClass">
+                <div class="flip-page-face grid h-full min-h-0 grid-rows-3 gap-1.5 sm:gap-3 md:gap-4">
                 <template v-for="day in [thursday, friday]" :key="day.date">
                     <article
                         class="ruled-margin flex min-h-0 cursor-text flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
@@ -272,6 +312,9 @@ function onTouchEnd(e) {
 
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
                     </article>
+                </div>
+                </div>
+                </div>
                 </div>
             </div>
         </div>
