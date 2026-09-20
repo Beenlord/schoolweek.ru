@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { xsrfToken } from '@/csrf.js';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
 
 const step = ref(1);
 const email = ref('');
@@ -74,35 +75,83 @@ async function submitPassword() {
 </script>
 
 <template>
-    <div class="ForgotPassword ForgotPasswordPage">
-        <h1>Восстановление пароля</h1>
+    <AuthLayout>
+        <template #title>Восстановление пароля</template>
 
-        <div v-if="error">{{ error }}</div>
+        <div class="ForgotPassword ForgotPasswordPage flex flex-col gap-4">
+            <p v-if="error" class="rounded-lg bg-error/10 px-3 py-2 text-sm text-error">{{ error }}</p>
 
-        <form v-if="step === 1" @submit.prevent="submitEmail">
-            <label>Email</label>
-            <input v-model="email" type="email">
-            <button type="submit" :disabled="processing">Далее</button>
-        </form>
+            <form v-if="step === 1" class="flex flex-col gap-4" @submit.prevent="submitEmail">
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Email</label>
+                    <input
+                        v-model="email"
+                        type="email"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                </div>
+                <button
+                    type="submit"
+                    :disabled="processing"
+                    class="rounded-full bg-accent px-4 py-2 font-semibold text-ink transition-colors hover:bg-accent-dark disabled:opacity-60"
+                >
+                    Далее
+                </button>
+            </form>
 
-        <form v-else-if="step === 2" @submit.prevent="submitAnswer">
-            <p>{{ secretQuestion }}</p>
-            <label>Ответ</label>
-            <input v-model="secretAnswer" type="text">
-            <button type="submit" :disabled="processing">Далее</button>
-        </form>
+            <form v-else-if="step === 2" class="flex flex-col gap-4" @submit.prevent="submitAnswer">
+                <p class="text-ink">{{ secretQuestion }}</p>
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Ответ</label>
+                    <input
+                        v-model="secretAnswer"
+                        type="text"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                </div>
+                <button
+                    type="submit"
+                    :disabled="processing"
+                    class="rounded-full bg-accent px-4 py-2 font-semibold text-ink transition-colors hover:bg-accent-dark disabled:opacity-60"
+                >
+                    Далее
+                </button>
+            </form>
 
-        <form v-else-if="step === 3" @submit.prevent="submitPassword">
-            <label>Новый пароль</label>
-            <input v-model="password" type="password">
-            <label>Повтор пароля</label>
-            <input v-model="passwordConfirmation" type="password">
-            <button type="submit" :disabled="processing">Сохранить</button>
-        </form>
+            <form v-else-if="step === 3" class="flex flex-col gap-4" @submit.prevent="submitPassword">
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Новый пароль</label>
+                    <input
+                        v-model="password"
+                        type="password"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Повтор пароля</label>
+                    <input
+                        v-model="passwordConfirmation"
+                        type="password"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                </div>
+                <button
+                    type="submit"
+                    :disabled="processing"
+                    class="rounded-full bg-accent px-4 py-2 font-semibold text-ink transition-colors hover:bg-accent-dark disabled:opacity-60"
+                >
+                    Сохранить
+                </button>
+            </form>
 
-        <div v-else-if="step === 4">
-            <p>Пароль изменён.</p>
-            <a href="/login">Войти</a>
+            <div v-else-if="step === 4" class="text-center">
+                <p class="mb-3 text-ink">Пароль изменён.</p>
+                <a href="/login" class="font-semibold text-accent-dark hover:underline">Войти</a>
+            </div>
         </div>
-    </div>
+
+        <template #footer>
+            <a href="/login" class="hover:text-ink">Вернуться ко входу</a>
+        </template>
+    </AuthLayout>
 </template>

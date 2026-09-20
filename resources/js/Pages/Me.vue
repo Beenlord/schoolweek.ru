@@ -1,5 +1,6 @@
 <script setup>
-import { router, useForm } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
 
 const props = defineProps({
     user: { type: Object, required: true },
@@ -23,69 +24,109 @@ function submit() {
         onSuccess: () => form.reset('current_password', 'password', 'password_confirmation', 'secret_answer'),
     });
 }
-
-function logout() {
-    router.post('/logout');
-}
 </script>
 
 <template>
-    <div class="Me MePage">
-        <h1>Профиль</h1>
+    <AppLayout>
+        <div class="Me MePage mx-auto max-w-lg">
+            <h1 class="mb-5 text-xl font-bold text-ink sm:text-2xl">Профиль</h1>
 
-        <form @submit.prevent="submit">
-            <div>
-                <label>Имя</label>
-                <input v-model="form.name" type="text">
-                <div v-if="form.errors.name">{{ form.errors.name }}</div>
-            </div>
+            <form class="ruled-paper flex flex-col gap-4 rounded-xl bg-paper p-6 shadow-sm ring-1 ring-paper-line/70" @submit.prevent="submit">
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Имя</label>
+                    <input
+                        v-model="form.name"
+                        type="text"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                    <p v-if="form.errors.name" class="mt-1 text-sm text-error">{{ form.errors.name }}</p>
+                </div>
 
-            <div>
-                <label>Email</label>
-                <input v-model="form.email" type="email">
-                <div v-if="form.errors.email">{{ form.errors.email }}</div>
-            </div>
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Email</label>
+                    <input
+                        v-model="form.email"
+                        type="email"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                    <p v-if="form.errors.email" class="mt-1 text-sm text-error">{{ form.errors.email }}</p>
+                </div>
 
-            <div>
-                <label>Часовой пояс</label>
-                <input v-model="form.timezone" type="text">
-                <div v-if="form.errors.timezone">{{ form.errors.timezone }}</div>
-            </div>
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Часовой пояс</label>
+                    <input
+                        v-model="form.timezone"
+                        type="text"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                    <p v-if="form.errors.timezone" class="mt-1 text-sm text-error">{{ form.errors.timezone }}</p>
+                </div>
 
-            <div>
-                <label>Секретный вопрос</label>
-                <select v-model="form.secret_question">
-                    <option v-for="q in secretQuestions" :key="q" :value="q">{{ q }}</option>
-                </select>
-                <div v-if="form.errors.secret_question">{{ form.errors.secret_question }}</div>
-            </div>
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Секретный вопрос</label>
+                    <select
+                        v-model="form.secret_question"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                        <option v-for="q in secretQuestions" :key="q" :value="q">{{ q }}</option>
+                    </select>
+                    <p v-if="form.errors.secret_question" class="mt-1 text-sm text-error">{{ form.errors.secret_question }}</p>
+                </div>
 
-            <div>
-                <label>Новый ответ на секретный вопрос (необязательно)</label>
-                <input v-model="form.secret_answer" type="text">
-                <div v-if="form.errors.secret_answer">{{ form.errors.secret_answer }}</div>
-            </div>
+                <div>
+                    <label class="mb-1 block text-sm font-semibold text-ink">Новый ответ на секретный вопрос (необязательно)</label>
+                    <input
+                        v-model="form.secret_answer"
+                        type="text"
+                        class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                    >
+                    <p v-if="form.errors.secret_answer" class="mt-1 text-sm text-error">{{ form.errors.secret_answer }}</p>
+                </div>
 
-            <fieldset>
-                <legend>Смена пароля (необязательно)</legend>
+                <fieldset class="rounded-lg border border-paper-line p-4">
+                    <legend class="px-1 text-sm font-semibold text-ink-muted">Смена пароля (необязательно)</legend>
 
-                <label>Текущий пароль</label>
-                <input v-model="form.current_password" type="password">
-                <div v-if="form.errors.current_password">{{ form.errors.current_password }}</div>
+                    <div class="mb-3">
+                        <label class="mb-1 block text-sm font-semibold text-ink">Текущий пароль</label>
+                        <input
+                            v-model="form.current_password"
+                            type="password"
+                            class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                        >
+                        <p v-if="form.errors.current_password" class="mt-1 text-sm text-error">{{ form.errors.current_password }}</p>
+                    </div>
 
-                <label>Новый пароль</label>
-                <input v-model="form.password" type="password">
-                <div v-if="form.errors.password">{{ form.errors.password }}</div>
+                    <div class="mb-3">
+                        <label class="mb-1 block text-sm font-semibold text-ink">Новый пароль</label>
+                        <input
+                            v-model="form.password"
+                            type="password"
+                            class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                        >
+                        <p v-if="form.errors.password" class="mt-1 text-sm text-error">{{ form.errors.password }}</p>
+                    </div>
 
-                <label>Повтор нового пароля</label>
-                <input v-model="form.password_confirmation" type="password">
-            </fieldset>
+                    <div>
+                        <label class="mb-1 block text-sm font-semibold text-ink">Повтор нового пароля</label>
+                        <input
+                            v-model="form.password_confirmation"
+                            type="password"
+                            class="w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-ink outline-none focus:border-accent-dark focus:ring-2 focus:ring-accent/40"
+                        >
+                    </div>
+                </fieldset>
 
-            <button type="submit" :disabled="form.processing">Сохранить</button>
-        </form>
-
-        <a href="/now">К дневнику</a>
-
-        <button type="button" @click="logout">Выйти</button>
-    </div>
+                <div class="flex items-center justify-between">
+                    <a href="/now" class="text-sm font-semibold text-ink-muted hover:text-ink">← К дневнику</a>
+                    <button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="rounded-full bg-accent px-4 py-2 font-semibold text-ink transition-colors hover:bg-accent-dark disabled:opacity-60"
+                    >
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </AppLayout>
 </template>

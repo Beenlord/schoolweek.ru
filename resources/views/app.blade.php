@@ -11,6 +11,9 @@
     <link rel="manifest" href="/build/manifest.webmanifest">
     <meta name="theme-color" content="#fbc02d">
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     @vite('resources/js/app.js')
 
     <x-inertia::head />

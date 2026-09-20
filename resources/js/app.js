@@ -1,4 +1,4 @@
-import '@css/app.scss';
+import '@css/app.css';
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { registerSW } from 'virtual:pwa-register';

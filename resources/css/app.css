@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+/*
+ * Дизайн-токены «тетрадного» стиля (см. README, «Концепция»): тёплая бумага, разлиновка,
+ * лимонный акцент — тот же #fbc02d, что уже используется как theme_color PWA-манифеста
+ * (vite.config.js), чтобы цвет строки статус-бара на телефоне совпадал с интерфейсом.
+ */
+@theme {
+    --color-paper: #fffdf5;
+    --color-paper-line: #cbd9e8;
+    --color-paper-margin: #f3b4b4;
+    --color-ink: #3a3226;
+    --color-ink-muted: #8a8071;
+    --color-accent: #fbc02d;
+    --color-accent-dark: #e0a800;
+    --color-today: #fff3cd;
+    --color-error: #c0392b;
+
+    --font-hand: "Caveat", cursive;
+    --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+    background-color: var(--color-paper);
+}
+
+body {
+    @apply font-sans text-ink antialiased;
+    background-color: var(--color-paper);
+}
+
+/* Разлинованная «тетрадная» подложка — используется под превью дня и в текстовых полях. */
+.ruled-paper {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 1.6em,
+        var(--color-paper-line) 1.6em,
+        var(--color-paper-line) calc(1.6em + 1px)
+    );
+    background-position: 0 0.35em;
+}
+
+/* Красная поля-линия слева, как в бумажном дневнике. */
+.ruled-margin {
+    box-shadow: inset 3px 0 0 var(--color-paper-margin);
+}
