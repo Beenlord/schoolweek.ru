@@ -1,11 +1,13 @@
 #!/bin/bash
 
-chown -R www:www /var/www/html/bootstrap/cache/ /var/www/html/storage/
-chmod -R 775 /var/www/html/bootstrap/cache/ /var/www/html/storage/
+chown -R www:www /app/bootstrap/cache/ /app/storage/
+chmod -R 775 /app/bootstrap/cache/ /app/storage/
 
 composer dump-autoload --no-interaction --optimize
 
-php artisan migrate
+php artisan env:encrypt
+
+php artisan migrate --force
 
 php artisan cache:clear
 php artisan route:clear

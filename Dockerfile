@@ -50,16 +50,37 @@ RUN composer install \
     --optimize-autoloader \
     --ignore-platform-reqs
 
-FROM vovikko/alpine-php-fpm:8.4
+FROM node:24-alpine AS node
+
+WORKDIR /app
+COPY . .
+
+RUN npm install \
+    && npm run build
+
+FROM vovikko/alpine-php-fpm:8.4 AS app
 
 USER root
 
-WORKDIR /var/www/html
+WORKDIR /app
 COPY . .
 
 RUN dos2unix ./scripts/entrypoint.sh \
     && chmod +x ./scripts/entrypoint.sh
 
 COPY --from=vendor ./tmp/vendor vendor
+
+FROM app AS dev
+
+WORKDIR /app
+COPY --from=app /app .
+
+ENTRYPOINT ["./scripts/entrypoint.sh"]
+
+FROM app AS prod
+
+WORKDIR /app
+COPY --from=app /app .
+COPY --from=node /app/public/build ./public/build
 
 ENTRYPOINT ["./scripts/entrypoint.sh"]

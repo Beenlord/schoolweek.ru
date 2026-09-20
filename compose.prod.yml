@@ -7,7 +7,7 @@ services:
       context: .
       target: prod
     volumes:
-      - .:/app/.
+      - ./.env:/app/.env
       - storage_data:/app/storage
       - vendor_data:/app/vendor
     environment:
