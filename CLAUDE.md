@@ -69,6 +69,10 @@ implementing schedule/day or auth features. Highlights, so context isn't lost if
 - **`app/helpers.php`** defines a custom `routes_path()` helper (autoloaded via `composer.json`'s `autoload.files`)
   used by `bootstrap/app.php`'s `withRouting()` call — this is non-standard Laravel and worth knowing before
   assuming route file locations follow the framework default.
+- **`Register`/`Login`/`ForgotPassword`/`Now`/`Me` Vue pages are unstyled functional skeletons**, wired to their
+  controllers (real `useForm`/fetch calls, real validation error display) but with no CSS — built specifically to
+  manually test the auth + profile-edit flow before any visual design pass. See `CHECKLIST.md` for the manual test
+  checklist covering those flows.
 
 ## Config file convention (established, keep following it)
 
