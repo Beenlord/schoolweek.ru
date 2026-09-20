@@ -30,16 +30,21 @@ body {
     background-color: var(--color-paper);
 }
 
-/* Разлинованная «тетрадная» подложка — используется под превью дня и в текстовых полях. */
+/*
+ * Разлинованная «тетрадная» подложка — используется под превью дня и в текстовых полях.
+ * Шаг линий задаётся через --line-h, который должен буквально совпадать с line-height
+ * реального текста внутри (утилиты leading-*, см. Now.vue), иначе линейка съезжает
+ * относительно строк. У элемента, где применяется класс, --line-h должен быть выставлен
+ * (например `[--line-h:1rem] sm:[--line-h:1.5rem]` — под leading-4/leading-6).
+ */
 .ruled-paper {
     background-image: repeating-linear-gradient(
         to bottom,
         transparent,
-        transparent 1.6em,
-        var(--color-paper-line) 1.6em,
-        var(--color-paper-line) calc(1.6em + 1px)
+        transparent calc(var(--line-h, 1.5rem) - 1px),
+        var(--color-paper-line) calc(var(--line-h, 1.5rem) - 1px),
+        var(--color-paper-line) var(--line-h, 1.5rem)
     );
-    background-position: 0 0.35em;
 }
 
 /* Красная поля-линия слева, как в бумажном дневнике. */
