@@ -14,25 +14,47 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   exist yet.
 - **API docs**: `dedoc/scramble` ^0.13 generates an OpenAPI document from route/validation introspection, served at
   `/docs/api` (config: `config/scramble.php`, access restricted by `RestrictedDocsAccess` middleware).
-- **Frontend**: `inertiajs/inertia-laravel` ^3.3 + Vue (server-driven SPA, no separate `web/` app). Pages live in
-  `resources/js/Pages/*.vue`, rendered via `Inertia::render(...)` from controllers.
+- **Frontend**: `inertiajs/inertia-laravel` ^3.3 + Vue 3 (server-driven SPA, no separate `web/` app). Pages live in
+  `resources/js/Pages/*.vue`, rendered via `Inertia::render(...)` from controllers. Build tooling is wired up:
+  `resources/js/app.js` bootstraps `createInertiaApp` (page resolution via `import.meta.glob('./Pages/**/*.vue')`),
+  `vite.config.js` registers `laravel-vite-plugin` + `@vitejs/plugin-vue` and an `@` → `resources/js` alias (mirrored
+  in `jsconfig.json` for editor IntelliSense), and `package.json` has `dev`/`build` npm scripts (`"type": "module"`
+  set since all frontend tooling here is ESM-only). `npm run build`/`npm run dev` both work.
 - **Database**: MariaDB (`config/database.php` default connection is `mariadb`, not Laravel's stock `sqlite`).
 - **Cache/Queue/Sessions**: Redis for cache and queue (`config/cache.php`, `config/queue.php` both default to
   `redis`); sessions default to Laravel's stock `database` driver (`config/session.php`) — this currently requires
   the `sessions` table, which does have a migration (`database/migrations/..._create_sessions_table.php`).
 
+## Product spec (MVP)
+
+`README.md` (Russian) now contains the actual product spec, agreed with the project owner — read it before
+implementing schedule/day or auth features. Highlights, so context isn't lost if `README.md` drifts:
+
+- **Day** is the core content unit: `(userId, date)` → one freeform markdown text field, rendered live (WYSIWYG,
+  no raw markdown syntax shown to the user), not split into sub-rows. Week = Monday-anchored, not stored as its own
+  entity, just computed.
+- **Week grid** mirrors the paper diary spread: Mon/Tue/Wed in one column, Thu/Fri/Sat/Sun in the other, with Sat and
+  Sun as two independent half-height cells (not a merged cell). Day-cell previews clip at a fixed number of visual
+  lines (~6 for weekdays, ~3 for Sat/Sun) with no line-wrapping — an overlong line is truncated, not wrapped.
+- **Week navigation**: swipe forward/back one week; a header showing year/month/week-number opens a calendar-style
+  week picker (cells are `[date–date]` ranges instead of days). Week number is counted from the start of the month
+  (not ISO), and a week split across two months belongs to whichever month has the majority of its days.
+- **Users**: `name` + `email` (login) + `password` + `timezone` (client auto-detected at registration, user-editable)
+  + a secret question/answer pair for password recovery. No email verification, no password-reset email flow — MVP
+  recovery is entirely secret-question-based. No surname, no sharing/collaboration between users (out of scope).
+- Explicitly **out of scope for MVP**: multi-user sharing, reminders/notifications, day version history (only
+  current state is stored), markdown beyond basic (lists/emphasis — no tables etc.), offline/PWA sync (not carried
+  over from the old Node API below).
+
 ## Current state / gaps to be aware of
 
 - **Routing is essentially empty**: `routes/web.php` has a single `/` route to `HomeController` (renders the `Home`
   Inertia page); `routes/api.php` is an empty stub (`<?php` only) — no API endpoints exist yet.
-- **Frontend build tooling is not wired up**: `resources/js/app.js` (the Inertia entry point) is empty and there is
-  no `vite.config.*`; `package.json` has no dependencies/devDependencies listed (no Vue, Inertia client, or Vite
-  packages installed) despite `resources/js/Pages/Home.vue` existing. Don't assume `npm run dev`/`npm run build`
-  work until this is set up.
 - **No test tooling**: `composer.json` has no `require-dev` section — no PHPUnit/Pest, no `tests/` directory, no
   `phpunit.xml`. There is currently no test or lint command to run.
 - **Migrations are minimal**: only `personal_access_tokens` (Sanctum) and `sessions` exist. There is no `users`
-  migration yet, and no seeders/factories.
+  migration yet (per the product spec above, it will need `name`/`email`/`password`/`timezone`/secret-question
+  fields — no surname), and no seeders/factories. No `schedule`/`days` migration exists yet either.
 - **`app/helpers.php`** defines a custom `routes_path()` helper (autoloaded via `composer.json`'s `autoload.files`)
   used by `bootstrap/app.php`'s `withRouting()` call — this is non-standard Laravel and worth knowing before
   assuming route file locations follow the framework default.
