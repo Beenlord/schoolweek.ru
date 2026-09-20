@@ -5,7 +5,7 @@ services:
   app:
     build:
       context: .
-      target: prod
+      target: dev
     volumes:
       - .:/app/.
       - storage_data:/app/storage
