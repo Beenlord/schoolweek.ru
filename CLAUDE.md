@@ -33,8 +33,12 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   `dev`/`build` npm scripts (`"type": "module"` set since all frontend tooling here is ESM-only). `npm run
   build`/`npm run dev` both work.
 - **Styling**: Tailwind CSS 4 (`tailwindcss` + `@tailwindcss/vite` in `devDependencies`) via CSS-first config —
-  `resources/css/app.scss` is just `@import "tailwindcss";`, imported from `resources/js/app.js`. `sass` is also a
-  devDependency for `.scss` beyond that. No actual design/component styling written yet.
+  `resources/css/app.css` (plain CSS, not `.scss`: Tailwind v4 explicitly recommends against pairing itself with a
+  Sass/Less/Stylus preprocessor — its `@theme`/`@apply` at-rules aren't guaranteed to survive being piped through
+  `sass` first — and nothing here actually needed Sass-specific syntax), imported from `resources/js/app.js`, holds
+  the "тетрадный" design tokens (`@theme`: paper/ink/accent colors, `Caveat`/`Nunito` fonts) plus `.ruled-paper`/
+  `.ruled-margin` helper classes used by the day-grid on `/now`. `sass` is still a listed devDependency but nothing
+  in the tree uses it anymore — keep it only if you're intentionally planning non-Tailwind-entry `.scss` files.
 - **PWA**: `vite-plugin-pwa` (`devDependencies`) is registered in `vite.config.js`, wired for Laravel's lack of a
   Vite-processed HTML entry: `injectRegister: false` (auto-injection has nowhere to attach — Vite only ever sees
   `resources/js/app.js` via `@vite()`, never `resources/views/app.blade.php`), manual registration instead via

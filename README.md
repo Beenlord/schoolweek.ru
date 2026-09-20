@@ -194,8 +194,9 @@ MVP состоит из шести базовых страниц — все ре
   `laravel-vite-plugin`, `@vitejs/plugin-vue`; алиасы `@` → `resources/js` и `@css` → `resources/css`, оба
   зеркалированы в `jsconfig.json`), npm-скрипты `dev`/`build`.
 - **Стили**: Tailwind CSS 4 (`tailwindcss` + `@tailwindcss/vite`, CSS-first конфиг — `@import "tailwindcss";` в
-  `resources/css/app.scss`, подключён из `resources/js/app.js`) и `sass` для SCSS. Дизайн под «тетрадный» стиль
-  интерфейса поверх этого ещё не написан.
+  `resources/css/app.css`, подключён из `resources/js/app.js`; обычный `.css`, не `.scss` — Tailwind v4 не
+  рекомендует смешивать себя с Sass-препроцессором). Базовая вёрстка под «тетрадный» стиль интерфейса — сетка
+  недели на `/now`, карточки форм авторизации — уже написана, но это не финальный дизайн.
 - **PWA-тулинг**: `vite-plugin-pwa` установлен, настроен под Laravel (ручная регистрация SW через
   `virtual:pwa-register` в `app.js`, `<link rel="manifest">` руками в `app.blade.php` — см. `CLAUDE.md`) и манифест
   заполнен под проект (`display: standalone`, `start_url: '/now'`). Иконки — заглушка, ссылаются в несуществующие

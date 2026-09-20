@@ -178,17 +178,17 @@ function onTouchEnd(e) {
             </div>
 
             <div
-                class="grid grid-cols-1 gap-3 md:grid-cols-2 md:grid-rows-3 md:grid-flow-col md:gap-4"
-                @touchstart="onTouchStart"
-                @touchend="onTouchEnd"
+                class="grid grid-cols-2 grid-rows-3 grid-flow-col gap-1.5 sm:gap-3 md:gap-4"
+                @touchstart.passive="onTouchStart"
+                @touchend.passive="onTouchEnd"
             >
                 <template v-for="day in [monday, tuesday, wednesday]" :key="day.date">
                     <article
-                        class="ruled-paper ruled-margin flex min-h-[9rem] cursor-text flex-col rounded-lg bg-paper p-3 shadow-sm ring-1 ring-paper-line/70"
+                        class="ruled-paper ruled-margin flex min-h-[5.5rem] cursor-text flex-col rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:min-h-[9rem] sm:p-3"
                         :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
-                        <header class="mb-1 flex items-baseline justify-between text-sm font-bold text-ink">
+                        <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:mb-1 sm:text-sm">
                             <span>{{ WEEKDAY_LABELS[day.weekday - 1] }}</span>
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
@@ -197,13 +197,13 @@ function onTouchEnd(e) {
                             v-if="editingDate === day.date"
                             v-model="day.content"
                             autofocus
-                            class="min-h-[7rem] flex-1 resize-none bg-transparent font-sans text-sm text-ink outline-none"
+                            class="min-h-[4rem] flex-1 resize-none bg-transparent font-sans text-xs text-ink outline-none sm:min-h-[7rem] sm:text-sm"
                             @click.stop
                             @blur="closeDay(day)"
                         ></textarea>
-                        <div v-else class="flex-1 text-sm text-ink-muted">
+                        <div v-else class="flex-1 text-xs text-ink-muted sm:text-sm">
                             <div v-if="!day.content" class="italic text-ink-muted/60">пусто…</div>
-                            <div v-for="(line, i) in previewLines(day, 6)" :key="i" class="truncate leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in previewLines(day, 6)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
                         </div>
 
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
@@ -212,11 +212,11 @@ function onTouchEnd(e) {
 
                 <template v-for="day in [thursday, friday]" :key="day.date">
                     <article
-                        class="ruled-paper ruled-margin flex min-h-[9rem] cursor-text flex-col rounded-lg bg-paper p-3 shadow-sm ring-1 ring-paper-line/70"
+                        class="ruled-paper ruled-margin flex min-h-[5.5rem] cursor-text flex-col rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:min-h-[9rem] sm:p-3"
                         :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
-                        <header class="mb-1 flex items-baseline justify-between text-sm font-bold text-ink">
+                        <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:mb-1 sm:text-sm">
                             <span>{{ WEEKDAY_LABELS[day.weekday - 1] }}</span>
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
@@ -225,13 +225,13 @@ function onTouchEnd(e) {
                             v-if="editingDate === day.date"
                             v-model="day.content"
                             autofocus
-                            class="min-h-[7rem] flex-1 resize-none bg-transparent font-sans text-sm text-ink outline-none"
+                            class="min-h-[4rem] flex-1 resize-none bg-transparent font-sans text-xs text-ink outline-none sm:min-h-[7rem] sm:text-sm"
                             @click.stop
                             @blur="closeDay(day)"
                         ></textarea>
-                        <div v-else class="flex-1 text-sm text-ink-muted">
+                        <div v-else class="flex-1 text-xs text-ink-muted sm:text-sm">
                             <div v-if="!day.content" class="italic text-ink-muted/60">пусто…</div>
-                            <div v-for="(line, i) in previewLines(day, 6)" :key="i" class="truncate leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in previewLines(day, 6)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
                         </div>
 
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
@@ -240,15 +240,15 @@ function onTouchEnd(e) {
 
                 <!-- Сб/Вс: визуально одна клетка, как в бумажном дневнике, но фактически два
                      независимых поля вдвое меньшей высоты (см. README, «Концепция»). -->
-                <div class="grid grid-rows-2 gap-3 md:gap-4">
+                <div class="grid grid-rows-2 gap-1.5 sm:gap-3 md:gap-4">
                     <article
                         v-for="day in [saturday, sunday]"
                         :key="day.date"
-                        class="ruled-paper ruled-margin flex min-h-[4.25rem] cursor-text flex-col rounded-lg bg-paper p-2.5 shadow-sm ring-1 ring-paper-line/70"
+                        class="ruled-paper ruled-margin flex min-h-[2.75rem] cursor-text flex-col rounded-lg bg-paper p-1 shadow-sm ring-1 ring-paper-line/70 sm:min-h-[4.25rem] sm:p-2.5"
                         :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
-                        <header class="mb-0.5 flex items-baseline justify-between text-sm font-bold text-ink">
+                        <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:text-sm">
                             <span>{{ WEEKDAY_LABELS[day.weekday - 1] }}</span>
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
@@ -257,13 +257,13 @@ function onTouchEnd(e) {
                             v-if="editingDate === day.date"
                             v-model="day.content"
                             autofocus
-                            class="min-h-[3rem] flex-1 resize-none bg-transparent font-sans text-sm text-ink outline-none"
+                            class="min-h-[2rem] flex-1 resize-none bg-transparent font-sans text-xs text-ink outline-none sm:min-h-[3rem] sm:text-sm"
                             @click.stop
                             @blur="closeDay(day)"
                         ></textarea>
-                        <div v-else class="flex-1 text-sm text-ink-muted">
+                        <div v-else class="flex-1 text-xs text-ink-muted sm:text-sm">
                             <div v-if="!day.content" class="italic text-ink-muted/60">пусто…</div>
-                            <div v-for="(line, i) in previewLines(day, 3)" :key="i" class="truncate leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in previewLines(day, 3)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
                         </div>
 
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>

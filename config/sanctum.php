@@ -18,11 +18,16 @@ return [
     |
     */
 
+    // currentRequestHost() подставляет реальный Host текущего запроса в список доверенных доменов —
+    // без этого дефолтный список ('127.0.0.1:8000' и т.п.) не покрывает, например, локальный
+    // http://localhost:8000 (порт не совпадает ни с одной записью) и любой прод-домен, если он не
+    // равен буквально APP_URL: запрос не распознаётся как "свой" фронтенд, EnsureFrontendRequestsAreStateful
+    // не поднимает сессионный guard, и auth:sanctum отдаёт 401 вместо использования cookie-сессии.
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
+        '%s%s%s',
         'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
         Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
+        Sanctum::currentRequestHost(),
     ))),
 
     /*
