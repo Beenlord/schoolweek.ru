@@ -25,6 +25,14 @@ const editableDays = reactive(props.days.map((day) => ({ ...day })));
 const pendingSaves = reactive({});
 const editingDate = ref(null);
 
+// Направление анимации сетки при переключении недели: Inertia-переход на /now?date= создаёт
+// компонент страницы заново (не переиспользует текущий), поэтому направление передаём через
+// sessionStorage — goToWeek() пишет его перед переходом, здесь читаем один раз при монтировании
+// и сразу стираем, чтобы обычная перезагрузка страницы анимацию не повторяла.
+const weekNavDir = sessionStorage.getItem('weekNavDir');
+sessionStorage.removeItem('weekNavDir');
+const weekAnimClass = weekNavDir === 'next' ? 'week-enter-next' : weekNavDir === 'prev' ? 'week-enter-prev' : '';
+
 window.addEventListener('online', () => { isOnline.value = true; });
 window.addEventListener('offline', () => { isOnline.value = false; });
 
@@ -116,6 +124,8 @@ function closeDay(day) {
 // Переключение недели переиспользует уже готовый /now?date= на бэкенде (см. NowController) —
 // достаточно передать любую дату внутри целевой недели, сервер сам посчитает её границы.
 function goToWeek(offsetDays) {
+    sessionStorage.setItem('weekNavDir', offsetDays > 0 ? 'next' : 'prev');
+
     const next = new Date(`${props.weekStart}T00:00:00`);
     next.setDate(next.getDate() + offsetDays);
 
@@ -166,6 +176,7 @@ function onTouchEnd(e) {
 
             <div
                 class="grid min-h-0 flex-1 grid-cols-2 grid-rows-3 grid-flow-col gap-1.5 sm:gap-3 md:gap-4"
+                :class="weekAnimClass"
                 @touchstart.passive="onTouchStart"
                 @touchend.passive="onTouchEnd"
             >

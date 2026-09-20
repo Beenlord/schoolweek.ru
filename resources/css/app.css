@@ -51,3 +51,26 @@ body {
 .ruled-margin {
     box-shadow: inset 3px 0 0 var(--color-paper-margin);
 }
+
+/*
+ * Анимация въезда сетки недели при переключении «вперёд/назад» (см. Now.vue) — направление
+ * передаётся между навигациями через sessionStorage, поскольку Inertia-переход на /now?date=
+ * пересоздаёт компонент страницы заново, а не переиспользует старый.
+ */
+@keyframes week-slide-from-right {
+    from { transform: translateX(16px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes week-slide-from-left {
+    from { transform: translateX(-16px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.week-enter-next {
+    animation: week-slide-from-right 0.22s ease-out;
+}
+
+.week-enter-prev {
+    animation: week-slide-from-left 0.22s ease-out;
+}
