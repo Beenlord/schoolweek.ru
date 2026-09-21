@@ -253,6 +253,13 @@ const editingDay = computed(() => editableDays.value.find((day) => day.date === 
 
 const WEEKDAY_FULL = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
 
+// Родительный падеж — отдельным списком от MONTHS выше: в шапке недели месяц стоит сам по себе
+// («Сентябрь 2026»), а в дате — при числе («22 сентября 2026»), и форма у него другая.
+const MONTHS_GENITIVE = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+];
+
 const editingTitle = computed(() => {
     const day = editingDay.value;
 
@@ -260,7 +267,13 @@ const editingTitle = computed(() => {
         return '';
     }
 
-    return `${WEEKDAY_FULL[day.weekday - 1]}, ${day.date.slice(8, 10)}.${day.date.slice(5, 7)}`;
+    // Дата целиком, включая год: окно открывается и на соседние недели, и по календарю, так что
+    // «22.09» без года оставляло бы вопрос, какой именно это день.
+    const year = Number(day.date.slice(0, 4));
+    const month = Number(day.date.slice(5, 7));
+    const date = Number(day.date.slice(8, 10));
+
+    return `${WEEKDAY_FULL[day.weekday - 1]}, ${date} ${MONTHS_GENITIVE[month - 1]} ${year}`;
 });
 
 // Правка из редактора: кладём в тот же объект дня, что показывает сетка, и отправляем через уже
