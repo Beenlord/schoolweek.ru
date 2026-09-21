@@ -20,6 +20,9 @@ const STORE = 'days';
 // писать, иначе при синхронизации правка затрёт содержимое, которого пользователь не видел
 // (батч разрешает конфликт по времени правки, см. DayController::batch).
 const WEEKS_STORE = 'weeks';
+// Правила событий, ключ — id с сервера. Раскрывает их в конкретные дни клиент, здесь только
+// хранение (см. resources/js/events.js).
+const EVENTS_STORE = 'events';
 
 let dbPromise = null;
 
@@ -258,6 +261,39 @@ export async function markWeekCached(weekStart) {
  * @param {string} weekStart понедельник недели, 'YYYY-MM-DD'
  * @returns {Promise<boolean>}
  */
+/**
+ * Локальное зеркало событий. Их десятки, не тысячи, поэтому читаем целиком — сетка недели
+ * раскрывает правила в дни сама (см. resources/js/events.js).
+ *
+ * @returns {Promise<Array<object>>}
+ */
+export async function getEvents() {
+    const db = await getDb();
+
+    return db.getAll(EVENTS_STORE);
+}
+
+/**
+ * Применяет порцию правил с сервера. Удалённые не записываются, а вычищаются: sync отдаёт их
+ * именно для этого — иначе событие, убранное на одном устройстве, жило бы на втором вечно.
+ *
+ * @param {Array<object>} events
+ */
+export async function putEvents(events) {
+    if (events.length === 0) {
+        return;
+    }
+
+    const db = await getDb();
+    const tx = db.transaction(EVENTS_STORE, 'readwrite');
+
+    await Promise.all(events.map((event) => (
+        event.deleted ? tx.store.delete(event.id) : tx.store.put(event)
+    )));
+
+    await tx.done;
+}
+
 export async function isWeekCached(weekStart) {
     const db = await getDb();
 

@@ -4,13 +4,16 @@ import { EditorContent, useEditor } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { parseMarkdown, serializeDoc } from '@/markdown.js';
+import EventStrips from '@/Components/EventStrips.vue';
 
 const props = defineProps({
     /** Содержимое дня в markdown — то же, что лежит в days.content. */
     modelValue: { type: String, default: '' },
+    /** Повторяющиеся события этого дня — показываются над текстом, но не являются его частью. */
+    events: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'pickEvent']);
 
 const editor = useEditor({
     // Документ задаётся один раз, при создании. Следить за внешними изменениями пропса не нужно:
@@ -67,11 +70,20 @@ defineExpose({ focus: () => editor.value?.commands.focus('end') });
              (телефон в альбомной ориентации с открытой клавиатурой), поле обязано ужаться, иначе
              оно выдавило бы панель форматирования за нижний край окна. grow/shrink по отдельности,
              а не flex-1 — иначе сокращение flex перебило бы basis собственным нулём. -->
-        <EditorContent
-            v-if="editor"
-            :editor="editor"
-            class="day-editor ruled-paper no-scrollbar min-h-0 min-w-0 grow shrink basis-[calc(10*var(--line-h))] overflow-y-auto overscroll-contain px-4 py-6 text-base leading-6 [--line-h:1.5rem]"
-        />
+        <!-- Прокручивается вся область целиком, вместе с полосками событий: в окне редактирования
+             они привязаны к тексту и уезжают вместе с ним — в отличие от клетки недели, где стоят
+             неподвижно вне прокрутки. Поэтому overflow переехал с самого редактора на эту обёртку.
+             EditorContent внутри — grow shrink-0: при короткой записи разлинованный лист всё равно
+             заполняет окно, при длинной не сжимается, а прокручивается. -->
+        <div class="no-scrollbar flex min-h-0 min-w-0 shrink grow basis-[calc(10*var(--line-h))] flex-col overflow-y-auto overscroll-contain [--line-h:1.5rem]">
+            <EventStrips v-if="events.length" :events="events" class="shrink-0 px-4 pt-3" @pick="emit('pickEvent', $event)" />
+
+            <EditorContent
+                v-if="editor"
+                :editor="editor"
+                class="day-editor ruled-paper shrink-0 grow px-4 py-6 text-base leading-6"
+            />
+        </div>
 
         <!-- Подвал собирает вызывающий: там рядом стоят и кнопки форматирования, и «Готово»,
              которое принадлежит окну, а не редактору. Экземпляр редактора отдаём слоту — панели

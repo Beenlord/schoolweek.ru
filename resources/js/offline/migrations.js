@@ -53,6 +53,35 @@ export const migrations = [
             db.createObjectStore('weeks', { keyPath: 'weekStart' });
         },
     },
+    {
+        version: 3,
+        description: 'События дня — правила, которые сетка недели раскрывает в конкретные дни',
+        up(db) {
+            db.createObjectStore('events', { keyPath: 'id' });
+        },
+    },
+    {
+        version: 4,
+        description: 'Починка версии 3: у части устройств она успела создать store под старым именем',
+        up(db) {
+            // Эта миграция существует из-за нарушения правила, записанного в шапке файла: версия 3
+            // была переписана уже после того, как отработала на устройствах разработки — сначала
+            // она создавала store «recurringEvents», потом её переделали на «events». Номер версии
+            // при этом не изменился, поэтому апгрейд на таких устройствах больше не запускался, а
+            // код просил несуществующий store и падал с «One of the specified object stores was
+            // not found».
+            //
+            // Отсюда и проверки существования: до этой точки база могла прийти в двух разных
+            // состояниях, и оба нужно привести к одному.
+            if (db.objectStoreNames.contains('recurringEvents')) {
+                db.deleteObjectStore('recurringEvents');
+            }
+
+            if (!db.objectStoreNames.contains('events')) {
+                db.createObjectStore('events', { keyPath: 'id' });
+            }
+        },
+    },
 ];
 
 // Самая частая ошибка при добавлении миграции — скопировать предыдущую и забыть поменять version

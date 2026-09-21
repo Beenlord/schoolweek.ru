@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\DayController;
+use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Auth\PasswordRecoveryController;
 
 // Восстановление пароля — пошаговые AJAX-вызовы со страницы /forgot-password (email → секретный вопрос →
@@ -22,4 +23,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/days/{date}', [DayController::class, 'show'])->name('api.days.show');
     Route::put('/days/{date}', [DayController::class, 'update'])->name('api.days.update');
+
+    // События дня. Эндпоинта «события на неделю» нет намеренно: сервер хранит правила, а раскрывает
+    // их в конкретные дни клиент (см. EventController). sync — раньше wildcard-роутов, иначе
+    // {event} перехватил бы «sync».
+    Route::get('/events/sync', [EventController::class, 'sync'])->name('api.events.sync');
+    Route::post('/events', [EventController::class, 'store'])->name('api.events.store');
+    Route::put('/events/{event}', [EventController::class, 'update'])->name('api.events.update');
+    Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('api.events.destroy');
 });

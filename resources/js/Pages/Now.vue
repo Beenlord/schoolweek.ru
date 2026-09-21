@@ -5,7 +5,10 @@ import debounce from 'lodash/debounce';
 import keyBy from 'lodash/keyBy';
 import { guessTimezone } from '@/dayjs.js';
 import { xsrfToken } from '@/csrf.js';
-import { getDaysInRange, isWeekCached, markSynced, markWeekCached, putCleanDays, putDirtyDay } from '@/offline/db.js';
+import { getDaysInRange, getEvents, isWeekCached, markSynced, markWeekCached, putCleanDays, putDirtyDay } from '@/offline/db.js';
+import { eventsByDate } from '@/events.js';
+import EventStrips from '@/Components/EventStrips.vue';
+import EventModal from '@/Components/EventModal.vue';
 import { syncNow } from '@/offline/sync.js';
 import { addDays, formatDate, formatFullDate, isValidDate, isoWeekday, parseDate, todayIn, weekDates, weekInfo, weekStart } from '@/week.js';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -100,13 +103,17 @@ function wantedWeekStart() {
 onMounted(async () => {
     const wanted = wantedWeekStart();
 
+    // Правила событий уже лежат локально — показываем их сразу, не дожидаясь синхронизации.
+    // Когда та закончится и принесёт новые, перечитаем (см. syncNow ниже).
+    await loadEvents();
+
     if (navigator.onLine && wanted === props.weekStart) {
         // Пропсы пришли живыми с сервера и описывают именно нужную неделю — кэшируем их как
         // «чистые» на случай, если она понадобится офлайн, и заодно пробуем отправить любые
         // старые неотправленные правки.
         await putCleanDays(props.days.map((day) => ({ date: day.date, content: day.content, updatedAt: day.updatedAt })));
         await markWeekCached(props.weekStart);
-        syncNow();
+        syncNow().then(loadEvents);
         return;
     }
 
@@ -116,7 +123,7 @@ onMounted(async () => {
     // /now?date=X может прийти снимок совсем другой недели (matchOptions.ignoreSearch в
     // runtimeCaching, vite.config.js). В обоих случаях источник истины — IndexedDB, не пропсы.
     await loadWeek(wanted);
-    syncNow();
+    syncNow().then(loadEvents);
 });
 
 // Гонка «пользователь листает быстрее, чем отвечает сеть»: каждый заход в loadWeek получает
@@ -447,7 +454,31 @@ function highlightDay(date, delay) {
     }
 }
 
+// События — правила, а не занятия: в какие дни они попадают, раскрывает eventsByDate (см.
+// resources/js/events.js). Правил у человека десятки, поэтому держим их целиком в памяти и
+// пересчитываем раскладку на смену недели, а не ходим за ней в базу на каждую клетку.
+const events = ref([]);
+
+const dayEvents = computed(() => eventsByDate(events.value, editableDays.value.map((day) => day.date)));
+
+async function loadEvents() {
+    events.value = await getEvents();
+}
+
 const searchOpen = ref(false);
+
+// Окно события: null — закрыто, { event } — открыто. event = null означает создание нового.
+// Отдельного списка событий нет: создают кнопкой в панели, правят кликом по полоске в календаре.
+const eventForm = ref(null);
+
+function openEventForm(event = null) {
+    eventForm.value = { event };
+}
+
+async function onEventSaved() {
+    eventForm.value = null;
+    await loadEvents();
+}
 
 // Переход по найденному дню. Ничего нового не изобретаем: неделю открывает тот же navigateToWeek,
 // что и выбор даты из шапки, а найденный день отмечает тот же highlightDay — соседние приглушаются
@@ -602,6 +633,11 @@ function onTouchEnd(e) {
                             </div>
                         </div>
 
+                        <!-- Полоски событий — вне прокрутки, третьим элементом флекс-колонки:
+                             они жёстко привязаны к клетке и не уезжают вместе с текстом. Потолок
+                             в две штуки, потому что место они отнимают у записи насовсем. -->
+                        <EventStrips :events="dayEvents[day.date]" :limit="2" compact class="mt-0.5 shrink-0" @pick="openEventForm" />
+
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
                     </article>
                 </template>
@@ -649,6 +685,11 @@ function onTouchEnd(e) {
                             </div>
                         </div>
 
+                        <!-- Полоски событий — вне прокрутки, третьим элементом флекс-колонки:
+                             они жёстко привязаны к клетке и не уезжают вместе с текстом. Потолок
+                             в две штуки, потому что место они отнимают у записи насовсем. -->
+                        <EventStrips :events="dayEvents[day.date]" :limit="2" compact class="mt-0.5 shrink-0" @pick="openEventForm" />
+
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
                     </article>
                 </template>
@@ -675,6 +716,11 @@ function onTouchEnd(e) {
                             </div>
                         </div>
 
+                        <!-- Полоски событий — вне прокрутки, третьим элементом флекс-колонки:
+                             они жёстко привязаны к клетке и не уезжают вместе с текстом. Потолок
+                             в две штуки, потому что место они отнимают у записи насовсем. -->
+                        <EventStrips :events="dayEvents[day.date]" :limit="2" compact class="mt-0.5 shrink-0" @pick="openEventForm" />
+
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
                     </article>
                 </div>
@@ -688,6 +734,14 @@ function onTouchEnd(e) {
              а не по одному в каждой клетке: клетка слишком мала, чтобы писать в ней, и на телефоне
              её вдобавок наполовину закрывает клавиатура. :key заставляет пересоздать редактор при
              переходе на другой день — Tiptap задаёт документ один раз, при создании. -->
+        <EventModal
+            v-if="eventForm"
+            :event="eventForm.event"
+            :default-date="todayIn(timezone)"
+            @saved="onEventSaved"
+            @close="eventForm = null"
+        />
+
         <DaySearch
             v-if="searchOpen"
             @pick="onSearchPick"
@@ -698,8 +752,10 @@ function onTouchEnd(e) {
             v-if="editingDay"
             :key="editingDay.date"
             :title="editingTitle"
+            :events="dayEvents[editingDay.date]"
             :model-value="editingDay.content ?? ''"
             @update:model-value="onEditorInput"
+            @pick-event="openEventForm"
             @close="closeDay"
         />
 
@@ -707,7 +763,7 @@ function onTouchEnd(e) {
             <button
                 type="button"
                 aria-label="Предыдущая неделя"
-                class="flex h-11 w-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
                 @click="goToWeek(-7)"
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
@@ -721,7 +777,7 @@ function onTouchEnd(e) {
                 type="button"
                 aria-label="Поиск по записям"
                 title="Поиск по записям"
-                class="flex h-11 w-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
                 @click="searchOpen = true"
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
@@ -734,14 +790,45 @@ function onTouchEnd(e) {
             <WeekPickerButton
                 :value="currentWeekStart"
                 icon-class="h-6 w-6"
-                class="flex h-11 w-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
                 @pick="onWeekPicked"
             />
+
+            <!-- Создание события. Как и поиск — в слоте страницы, а не в AppLayout: события живут
+                 в сетке недели, на других страницах их неоткуда показать. Правят их не отсюда,
+                 а кликом по полоске в календаре.
+                 Иконка намеренно НЕ календарь: слева уже стоит кнопка выбора даты с календарём, и
+                 две похожие иконки подряд читались бы как одно и то же действие. Плюс в круге
+                 однозначно значит «добавить». -->
+            <button
+                type="button"
+                aria-label="Новое событие (бета)"
+                title="Новое событие (бета)"
+                class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                @click="openEventForm()"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 8v8M8 12h8" />
+                </svg>
+
+                <!-- Одна буква вместо слова «beta» — поэтому метка помещается в кружок и целиком
+                     внутрь кнопки, не вылезая за остров. Кольцо цветом бумаги отделяет её от линий
+                     иконки под ней.
+                     aria-hidden — про бету уже сказано в aria-label кнопки, дублировать для
+                     скринридера незачем, тем более одиноким греческим символом. -->
+                <span
+                    aria-hidden="true"
+                    class="absolute right-0.5 bottom-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[0.625rem] leading-none font-bold text-ink ring-1 ring-paper"
+                >
+                    β
+                </span>
+            </button>
 
             <button
                 type="button"
                 aria-label="Следующая неделя"
-                class="flex h-11 w-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
                 @click="goToWeek(7)"
             >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">

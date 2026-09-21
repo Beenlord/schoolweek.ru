@@ -51,14 +51,18 @@ const isProfileActive = () => page.url.startsWith('/me');
                  как скруглённый прямоугольник, тогда как капсула сразу отсылала бы к iOS.
                  Подложка чуть плотнее чисто эппловской: у Material поверхность тональная, а не
                  почти прозрачная. -->
-            <div class="pointer-events-auto flex items-center gap-1 rounded-3xl bg-paper/75 px-2 py-1.5 shadow-[0_8px_28px_-12px_rgba(58,50,38,0.45)] ring-1 ring-paper-line/50 backdrop-blur-xl">
+            <!-- Кнопок стало семь, и на узком телефоне (360px и меньше) они в строку уже не
+                 помещаются: 7×44 плюс зазоры — это больше доступной ширины. Поэтому остров
+                 прокручивается по горизонтали, а не сжимает зоны нажатия: 44px — минимум, ниже
+                 которого попадать пальцем становится трудно, и жертвовать им нельзя. -->
+            <div class="no-scrollbar pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-3xl bg-paper/75 px-2 py-1.5 shadow-[0_8px_28px_-12px_rgba(58,50,38,0.45)] ring-1 ring-paper-line/50 backdrop-blur-xl">
                 <component
                     :is="homeHandler ? 'button' : 'a'"
                     :type="homeHandler ? 'button' : null"
                     :href="homeHandler ? null : '/now'"
                     :aria-label="homeLabel"
                     :title="homeLabel"
-                    class="flex h-11 w-11 items-center justify-center rounded-full text-xl leading-none transition-colors hover:bg-today/60"
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl leading-none transition-colors hover:bg-today/60"
                     @click="homeHandler && homeHandler()"
                 >
                     🍹
@@ -72,7 +76,7 @@ const isProfileActive = () => page.url.startsWith('/me');
                 <a
                     href="/me"
                     aria-label="Профиль"
-                    class="flex h-11 items-center justify-center rounded-full transition-colors"
+                    class="flex h-11 shrink-0 items-center justify-center rounded-full transition-colors"
                     :class="isProfileActive() ? 'w-14 bg-today text-accent-dark' : 'w-11 text-ink-muted hover:bg-today/60'"
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">

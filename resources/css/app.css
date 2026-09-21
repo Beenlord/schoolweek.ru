@@ -17,6 +17,18 @@
     --color-today: #fff3cd;
     --color-error: #c0392b;
 
+    /*
+     * Палитра повторяющихся событий. Пользователь выбирает из неё, а не произвольный цвет: полоска
+     * события лежит на тёплой бумаге и должна оставаться читаемой, а случайный hex это не
+     * гарантирует. Ключи совпадают с RecurringEvent::COLORS в PHP.
+     */
+    --color-event-lemon: #f5d76e;
+    --color-event-mint: #a8d5ba;
+    --color-event-sky: #a3c7e8;
+    --color-event-rose: #f0b0ba;
+    --color-event-lilac: #c5b3e0;
+    --color-event-sand: #ddc49a;
+
     --font-hand: "Caveat", cursive;
     --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
 }

@@ -68,6 +68,31 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   the scan walks a cursor newest-first and stops at the limit, and matching uses a pre-compiled `RegExp` rather
   than `content.toLowerCase().includes()` — the latter allocates a copy of every day's text on every keystroke.
   Storage is *not* a concern people should "fix": the corpus predates search and is a few MB per decade.
+- **Events** (`events` table, `App\Models\Event`, `Api\EventController`) — see README, «События», for the spec.
+  Recurrence is an *optional property*, not the concept: `frequency` is `once|daily|weekly|monthly|yearly` and
+  `once` is the default. The server stores **rules only**; expanding a rule into actual dates happens **only on
+  the client** (`resources/js/events.js`). There is deliberately no "events for week X" endpoint — a PHP copy of
+  that calendar would be a second `WeekCalculator`-style duplicate to keep in sync.
+  - `repeat_on` is one nullable JSON column holding weekdays `1–7` for `weekly` or days-of-month `1–31` for
+    `monthly`, and `null` otherwise. One column rather than two because only one is ever in use and the
+    frequency makes the meaning unambiguous. `EventController::normalized()` **nulls out fields that don't
+    apply** to the chosen frequency instead of storing them "just in case".
+  - Day-of-month values **clamp to the last day of short months** rather than skipping (owner's decision), and
+    the same rule covers 29 February for `yearly`. Useful consequence: picking the 31st gives "last day of the
+    month" for every month.
+  - Rows are **soft-deleted** and `sync` returns deleted ones with `deleted: true` — unlike days, events get
+    removed, and a hard delete would leave them alive forever on every other device.
+  - Colours are palette keys (`Event::COLORS` ↔ `EVENT_COLORS` in `events.js` ↔ `--color-event-*` tokens); the
+    Tailwind classes are spelled out in a literal map in `events.js` because `bg-event-${color}` would never be
+    found by the scanner.
+  - **No list screen, by design**: the panel button creates, and editing is reached by clicking the event's
+    strip in the calendar. Creating/editing needs the network; viewing works offline from IndexedDB store
+    `events`. Strips are pinned below the day cell's scroll area (capped at 2 + "ещё N", because they take
+    that space permanently) and sit above the text *inside* the scroll in the day editor.
+  - `remind` / `remind_minutes_before` columns exist, but **delivery is not built yet** — see README for the
+    push design (client uploads computed occurrence timestamps so the server still never learns the rules).
+  - The feature carries a **`beta` badge** in `EventModal`'s header, precisely because that toggle saves but
+    does nothing yet. Drop the badge when push delivery ships, not before.
 - **Date/util libs**: `dayjs` and `lodash` (both `dependencies`). **Never `import dayjs from 'dayjs'` directly** —
   import it from `resources/js/dayjs.js`, which is the one place plugins are registered (`utc` → `timezone` →
   `isoWeek`, in that order; `timezone` is built on `utc`). `extend()` mutates the dayjs module globally, so
@@ -129,6 +154,17 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   never saw would silently destroy it on the next sync (`DayController::batch` resolves by edit time, not
   content). An unmarked week renders as "нет данных" and is read-only — but a week whose server fetch is still
   in flight counts as loaded optimistically, otherwise every forward navigation online would flash that state.
+- **The owner tests on iOS as an installed PWA** (added to the Home Screen), not as a page in Safari. Assume
+  that environment when reasoning about a bug report or proposing a fix, and say which environment you mean if
+  it matters. Consequences worth holding onto:
+  - **Web Push is actually available there** (iOS 16.4+ requires exactly this — an installed PWA; in
+    Safari-as-browser it does not work at all), so notification work is testable on the owner's device.
+  - **There is no browser chrome**: no address bar, no visible Back button. Week navigation via
+    `history.pushState`/`popstate` is reachable only through the app's own controls and the iOS edge-swipe
+    gesture — and that gesture competes with the week swipe, which the grid's `touch-action: pan-y pinch-zoom`
+    deliberately constrains.
+  - A symptom seen in one environment does not automatically reproduce in the other; `display: standalone`
+    changes viewport behaviour and browser UI, so reproduce in the installed app before concluding a fix worked.
 - **iOS/iPadOS touch constraints — don't "tidy" these away.** Five rules exist because Safari both rubber-bands
   the document on any touch and zooms on double-tap, either of which fights the week swipe:
   `body { touch-action: manipulation }` in `app.css` (kills double-tap zoom while keeping panning and pinch-zoom —

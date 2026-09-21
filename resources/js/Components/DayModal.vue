@@ -9,9 +9,11 @@ defineProps({
     title: { type: String, required: true },
     /** Содержимое дня в markdown. */
     modelValue: { type: String, default: '' },
+    /** Повторяющиеся события, попадающие на этот день. */
+    events: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:modelValue', 'close']);
+const emit = defineEmits(['update:modelValue', 'pickEvent', 'close']);
 
 const editorRef = ref(null);
 
@@ -65,7 +67,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
                     <DayEditor
                         ref="editorRef"
                         :model-value="modelValue"
+                        :events="events"
                         @update:model-value="emit('update:modelValue', $event)"
+                        @pick-event="emit('pickEvent', $event)"
                     >
                         <template #footer="{ editor }">
                             <div class="flex shrink-0 items-center gap-2 border-t border-paper-line/50 px-2 py-1">
