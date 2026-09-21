@@ -1,5 +1,13 @@
 import { openDB } from 'idb';
+import escapeRegExp from 'lodash/escapeRegExp';
 import { LATEST_VERSION, migrations } from '@/offline/migrations.js';
+
+/**
+ * Минимальная длина поискового запроса. По одной букве совпадает почти всё: и перебор получается
+ * полный, и список бессмысленный. Живёт здесь, потому что нужна и выборке, и интерфейсу поиска —
+ * чтобы подсказка «введите хотя бы столько-то» не разошлась с тем, что на самом деле фильтруется.
+ */
+export const SEARCH_MIN_LENGTH = 2;
 
 // Локальное зеркало дней пользователя для офлайн-показа/редактирования /now (см. README, «Offline и
 // PWA»). Хранит и уже синхронизированные дни (dirty: 0), и ещё не отправленные офлайн-правки
@@ -99,6 +107,59 @@ export async function getDaysInRange(from, to) {
     const db = await getDb();
 
     return db.getAll(STORE, IDBKeyRange.bound(from, to));
+}
+
+/**
+ * Поиск по содержимому дней — подстрокой, без учёта регистра.
+ *
+ * Идёт целиком по локальной копии, и онлайн тоже: серверный поиск не нужен, потому что в
+ * IndexedDB и так лежит весь корпус записей пользователя, а не только просмотренные недели —
+ * первый sync (без курсора) отдаёт все дни разом, см. DayController::sync. Одно следствие:
+ * офлайн поиск работает ровно так же, без отдельной ветки логики.
+ *
+ * Подстрокой, а не по словам: для русского это заметно полезнее — «маникюр» находит и
+ * «маникюра», и «маникюрный», чего словарный поиск без морфологии не умеет.
+ *
+ * Курсором, а не getAll + фильтр: обход идёт по убыванию ключа (ключ — дата), поэтому свежие дни
+ * попадаются первыми и на limit можно остановиться, не вычитывая базу целиком. У пользователя с
+ * многолетней историей это и есть основная экономия: типичный запрос («что я писал недавно»)
+ * завершается, не дочитав базу до конца.
+ *
+ * Сравнение — заранее скомпилированной регуляркой, а не content.toLowerCase().includes(): второе
+ * выделяет копию всего текста дня на каждой строке, то есть мегабайты мусора за один запрос,
+ * причём запрос идёт на каждое нажатие клавиши. Регулярка компилируется один раз и работает по
+ * исходной строке.
+ *
+ * @param {string} query
+ * @param {number} limit
+ * @returns {Promise<Array<{date: string, content: string|null, updatedAt: string|null, dirty: number}>>}
+ */
+export async function searchDays(query, limit = 100) {
+    const needle = query.trim();
+
+    if (needle.length < SEARCH_MIN_LENGTH) {
+        return [];
+    }
+
+    // escapeRegExp обязателен: строку вводит пользователь, и символы вроде «(» или «*» иначе либо
+    // сломали бы выражение, либо — что хуже — сделали бы его неожиданно широким.
+    const matcher = new RegExp(escapeRegExp(needle), 'iu');
+
+    const db = await getDb();
+    const found = [];
+    let cursor = await db.transaction(STORE).store.openCursor(null, 'prev');
+
+    while (cursor && found.length < limit) {
+        const day = cursor.value;
+
+        if (day.content && matcher.test(day.content)) {
+            found.push(day);
+        }
+
+        cursor = await cursor.continue();
+    }
+
+    return found;
 }
 
 /**

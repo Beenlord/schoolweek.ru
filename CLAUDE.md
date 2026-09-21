@@ -59,6 +59,15 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   *is* the top of the keyboard. Don't reintroduce `position: fixed` on the toolbar — that was the earlier
   design and it needed a breakpoint plus per-frame offsets to do the same job. Editor state still flows through the
   existing `saveSoon`/`saveDay`/IndexedDB path unchanged — content is a plain string to everything downstream.
+- **Search** (`Components/DaySearch.vue` + `searchDays` in `offline/db.js`) runs **entirely against IndexedDB**,
+  online included — there is no server endpoint and none is needed, because the first `sync` (no cursor) returns
+  *every* day the user has, so the local copy is the full corpus, not just visited weeks. Offline support falls
+  out of that for free. It also **cannot be its own route**: the service worker only caches `/now`, so `/search`
+  would not open offline — hence an overlay inside `/now`, with the trigger in the page's `#bottom-bar` slot
+  rather than in `AppLayout` (there is nothing to search on `/me`). Two implementation constraints worth keeping:
+  the scan walks a cursor newest-first and stops at the limit, and matching uses a pre-compiled `RegExp` rather
+  than `content.toLowerCase().includes()` — the latter allocates a copy of every day's text on every keystroke.
+  Storage is *not* a concern people should "fix": the corpus predates search and is a few MB per decade.
 - **Date/util libs**: `dayjs` and `lodash` (both `dependencies`). **Never `import dayjs from 'dayjs'` directly** —
   import it from `resources/js/dayjs.js`, which is the one place plugins are registered (`utc` → `timezone` →
   `isoWeek`, in that order; `timezone` is built on `utc`). `extend()` mutates the dayjs module globally, so

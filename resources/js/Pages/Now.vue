@@ -7,9 +7,10 @@ import { guessTimezone } from '@/dayjs.js';
 import { xsrfToken } from '@/csrf.js';
 import { getDaysInRange, isWeekCached, markSynced, markWeekCached, putCleanDays, putDirtyDay } from '@/offline/db.js';
 import { syncNow } from '@/offline/sync.js';
-import { addDays, formatDate, isValidDate, isoWeekday, parseDate, todayIn, weekDates, weekInfo, weekStart } from '@/week.js';
+import { addDays, formatDate, formatFullDate, isValidDate, isoWeekday, parseDate, todayIn, weekDates, weekInfo, weekStart } from '@/week.js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DayModal from '@/Components/DayModal.vue';
+import DaySearch from '@/Components/DaySearch.vue';
 import RichText from '@/Components/RichText.vue';
 import WeekPickerButton from '@/Components/WeekPickerButton.vue';
 
@@ -280,30 +281,7 @@ const sunday = computed(() => dayByWeekday(7));
 // переключении недели, и ссылка на старый объект пережила бы свою неделю.
 const editingDay = computed(() => editableDays.value.find((day) => day.date === editingDate.value) ?? null);
 
-const WEEKDAY_FULL = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
-
-// Родительный падеж — отдельным списком от MONTHS выше: в шапке недели месяц стоит сам по себе
-// («Сентябрь 2026»), а в дате — при числе («22 сентября 2026»), и форма у него другая.
-const MONTHS_GENITIVE = [
-    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
-];
-
-const editingTitle = computed(() => {
-    const day = editingDay.value;
-
-    if (!day) {
-        return '';
-    }
-
-    // Дата целиком, включая год: окно открывается и на соседние недели, и по календарю, так что
-    // «22.09» без года оставляло бы вопрос, какой именно это день.
-    const year = Number(day.date.slice(0, 4));
-    const month = Number(day.date.slice(5, 7));
-    const date = Number(day.date.slice(8, 10));
-
-    return `${WEEKDAY_FULL[day.weekday - 1]}, ${date} ${MONTHS_GENITIVE[month - 1]} ${year}`;
-});
+const editingTitle = computed(() => (editingDay.value ? formatFullDate(editingDay.value.date) : ''));
 
 // Правка из редактора: кладём в тот же объект дня, что показывает сетка, и отправляем через уже
 // существующее отложенное сохранение — ни IndexedDB, ни синхронизация об этом ничего не знают,
@@ -467,6 +445,19 @@ function highlightDay(date, delay) {
     } else {
         show();
     }
+}
+
+const searchOpen = ref(false);
+
+// Переход по найденному дню. Ничего нового не изобретаем: неделю открывает тот же navigateToWeek,
+// что и выбор даты из шапки, а найденный день отмечает тот же highlightDay — соседние приглушаются
+// после того, как створка легла.
+function onSearchPick(date) {
+    searchOpen.value = false;
+
+    const flipping = navigateToWeek(formatDate(weekStart(parseDate(date))));
+
+    highlightDay(date, flipping ? FLIP_DURATION : 0);
 }
 
 function onWeekPicked(value) {
@@ -697,6 +688,12 @@ function onTouchEnd(e) {
              а не по одному в каждой клетке: клетка слишком мала, чтобы писать в ней, и на телефоне
              её вдобавок наполовину закрывает клавиатура. :key заставляет пересоздать редактор при
              переходе на другой день — Tiptap задаёт документ один раз, при создании. -->
+        <DaySearch
+            v-if="searchOpen"
+            @pick="onSearchPick"
+            @close="searchOpen = false"
+        />
+
         <DayModal
             v-if="editingDay"
             :key="editingDay.date"
@@ -718,8 +715,22 @@ function onTouchEnd(e) {
                 </svg>
             </button>
 
-            <!-- Тот же выбор даты, что и в шапке, но под большим пальцем: между стрелками, с
-                 которыми он и образует один блок навигации по неделям. -->
+            <!-- Поиск живёт в слоте страницы, а не в AppLayout: искать есть что только на /now.
+                 На /me искать нечего, и офлайн та страница всё равно не открывается. -->
+            <button
+                type="button"
+                aria-label="Поиск по записям"
+                title="Поиск по записям"
+                class="flex h-11 w-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                @click="searchOpen = true"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M20 20l-4-4" />
+                </svg>
+            </button>
+
+            <!-- Тот же выбор даты, что и в шапке, но под большим пальцем. -->
             <WeekPickerButton
                 :value="currentWeekStart"
                 icon-class="h-6 w-6"
