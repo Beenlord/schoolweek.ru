@@ -11,6 +11,7 @@ import { addDays, formatDate, isValidDate, isoWeekday, parseDate, todayIn, weekD
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DayModal from '@/Components/DayModal.vue';
 import RichText from '@/Components/RichText.vue';
+import WeekPickerButton from '@/Components/WeekPickerButton.vue';
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -401,6 +402,19 @@ function goToWeek(offsetDays) {
     navigateToWeek(formatDate(addDays(parseDate(currentWeekStart.value), offsetDays)));
 }
 
+// Быстрый переход по дате из шапки. В ТЗ на этом месте описан свой календарь с ячейками-
+// диапазонами «[дата–дата]»; вместо него системный выбор даты — он привычнее, умеет листать годы
+// и не требует своей вёрстки. Неделя вычисляется из выбранного дня, попадать ровно в понедельник
+// пользователю не нужно.
+function onWeekPicked(value) {
+    // Поле даты можно очистить — тогда менять нечего.
+    if (!isValidDate(value)) {
+        return;
+    }
+
+    navigateToWeek(formatDate(weekStart(parseDate(value))));
+}
+
 // Кнопка «домой» в нижней панели. На /now это не переход по ссылке, а перелистывание к текущей
 // неделе: перезагрузка здесь сбрасывала бы состояние страницы и офлайн-вид, да ещё и не сработала
 // бы без сети.
@@ -468,8 +482,14 @@ function onTouchEnd(e) {
             </p>
 
             <h1 class="mb-2 shrink-0 text-base font-bold text-ink sm:text-xl">
-                {{ MONTHS[viewMonth - 1] }} {{ viewYear }}
-                <span class="font-normal text-ink-muted">— неделя {{ viewWeek }}</span>
+                <WeekPickerButton
+                    :value="currentWeekStart"
+                    class="-mx-1 inline-flex items-center gap-1.5 rounded-lg px-1 text-ink transition-colors hover:bg-today/60"
+                    @pick="onWeekPicked"
+                >
+                    {{ MONTHS[viewMonth - 1] }} {{ viewYear }}
+                    <span class="font-normal text-ink-muted">— неделя {{ viewWeek }}</span>
+                </WeekPickerButton>
             </h1>
 
             <!-- Никакого overflow здесь: во время переворота створка выходит за пределы сетки,
@@ -618,6 +638,15 @@ function onTouchEnd(e) {
                     <path d="M15 19l-7-7 7-7" />
                 </svg>
             </button>
+
+            <!-- Тот же выбор даты, что и в шапке, но под большим пальцем: между стрелками, с
+                 которыми он и образует один блок навигации по неделям. -->
+            <WeekPickerButton
+                :value="currentWeekStart"
+                icon-class="h-6 w-6"
+                class="flex h-11 w-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-today/60 hover:text-ink"
+                @pick="onWeekPicked"
+            />
 
             <button
                 type="button"

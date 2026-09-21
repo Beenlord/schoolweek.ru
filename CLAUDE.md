@@ -170,8 +170,11 @@ implementing schedule/day or auth features. Highlights, so context isn't lost if
   hint that it existed. Wrapping is safe for the ruled background because the wrapped lines keep the same
   `line-height`, which must stay equal to `--line-h` on `.ruled-paper`. Empty lines are rendered as a non-breaking
   space — a plain one would collapse and the line would lose its height.
-- **Week navigation**: swipe forward/back one week; a header showing year/month/week-number opens a calendar-style
-  week picker (cells are `[date–date]` ranges instead of days). Week number is counted from the start of the month
+- **Week navigation**: swipe forward/back one week; the header opens the **native date picker** (a hidden
+  `<input type="date">` driven by `showPicker()`, with `.click()` as the fallback — the input must stay rendered,
+  `display: none` makes `showPicker()` throw), and the chosen day switches to the week containing it. The spec
+  originally called for a custom `[date–date]` week-cell calendar here; the native one was preferred because it
+  is familiar on phones, scrolls years, and needs no markup of its own. Week number is counted from the start of the month
   (not ISO), and a week split across two months belongs to whichever month has the majority of its days.
 - **Users**: `name` + `email` (login) + `password` + `timezone` (client auto-detected at registration, user-editable)
   + a secret question/answer pair for password recovery. No email verification, no password-reset email flow — MVP
