@@ -7,7 +7,11 @@ import { syncNow } from '@/offline/sync.js';
 // injectRegister: false в vite.config.js — Laravel не даёт Vite HTML-страницу для автоинжекта регистрации,
 // поэтому регистрируем service worker сами. registerType: 'autoUpdate' — новую версию применяем без вопросов
 // пользователю, отдельный UI "доступно обновление" не нужен.
-if ('serviceWorker' in navigator) {
+//
+// Только на сборке: под `npm run dev` никакого service worker'а нет и быть не может — см. комментарий
+// у devOptions в vite.config.js. Проверка по import.meta.env.PROD здесь для явности, чтобы не зависеть
+// от того, что именно virtual:pwa-register подставляет в dev-режиме.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     registerSW({ immediate: true });
 }
 

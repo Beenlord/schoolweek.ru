@@ -7,8 +7,14 @@
 
     {{-- vite-plugin-pwa не может инжектить эти теги сам (Vite не обрабатывает эту Blade-страницу как HTML-энтрипоинт
          — см. комментарий у injectRegister в vite.config.js), поэтому manifest.webmanifest — стандартное имя,
-         которое генерирует плагин — и theme-color прописаны здесь руками. --}}
-    <link rel="manifest" href="/build/manifest.webmanifest">
+         которое генерирует плагин — и theme-color прописаны здесь руками.
+
+         Ссылка на манифест — только когда приложение работает на сборке: под `npm run dev` файлы Vite отдаёт
+         со своего порта, в public/build ничего не лежит, и этот тег дал бы ровно такой же 404, как dev-sw.js
+         (см. комментарий у devOptions в vite.config.js). --}}
+    @unless (\Illuminate\Support\Facades\Vite::isRunningHot())
+        <link rel="manifest" href="/build/manifest.webmanifest">
+    @endunless
     <meta name="theme-color" content="#fbc02d">
 
     {{-- Иконки — из готового экспорта в public/favicon/ (см. icons в vite.config.js). Отдельного favicon.ico

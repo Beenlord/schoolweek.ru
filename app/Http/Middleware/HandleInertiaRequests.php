@@ -38,7 +38,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user()?->only(['id', 'name', 'email']),
+                // timezone нужен клиенту, чтобы самому определять «сегодня» при переключении
+                // недели без похода на сервер (см. Pages/Now.vue) — пояс профиля может
+                // отличаться от пояса устройства.
+                'user' => $request->user()?->only(['id', 'name', 'email', 'timezone']),
             ],
         ];
     }

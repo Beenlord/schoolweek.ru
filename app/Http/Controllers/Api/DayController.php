@@ -32,10 +32,17 @@ class DayController extends Controller
             ->get()
             ->keyBy(fn (Day $day) => $day->date->toDateString());
 
-        $days = $dates->map(fn (CarbonImmutable $d) => [
-            'date' => $d->toDateString(),
-            'content' => $existing->get($d->toDateString())?->content,
-        ])->all();
+        $days = $dates->map(function (CarbonImmutable $d) use ($existing) {
+            $day = $existing->get($d->toDateString());
+
+            return [
+                'date' => $d->toDateString(),
+                'content' => $day?->content,
+                // Клиент кладёт это в IndexedDB как метку синхронизации — по ней последующий
+                // batch разрешает конфликты (см. batch() ниже), поэтому поле обязательно.
+                'updatedAt' => $day?->updated_at?->toIso8601String(),
+            ];
+        })->all();
 
         return response()->json([
             'weekStart' => $weekStart->toDateString(),

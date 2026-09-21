@@ -29,9 +29,16 @@ export default defineConfig({
             buildBase: '/',
             scope: '/',
             devOptions: {
-                // Иначе манифест и service worker собираются только при `vite build`, а через `npm run dev`
-                // (как обычно ведётся разработка) PWA-функциональность проверить будет нельзя.
-                enabled: true,
+                // Выключено намеренно, и включать обратно бесполезно. В dev-режиме плагин ждёт, что
+                // service worker отдаст сам Vite по адресу /dev-sw.js?dev-sw — но страницу здесь отдаёт
+                // Laravel (localhost:8000), а Vite слушает свой порт (localhost:5173).
+                // navigator.serviceWorker.register() резолвит путь относительно origin СТРАНИЦЫ, то есть
+                // запрос уходит в Laravel, где такого роута нет: GET /dev-sw.js?dev-sw → 404. Обойти это
+                // нельзя — скрипт service worker обязан быть с того же origin, что и страница, поэтому
+                // сослаться на :5173 тоже не вариант.
+                // PWA проверяется на сборке: `npm run build`, дальше обычный `php artisan serve`
+                // (или docker compose up) — тогда и sw.js, и manifest.webmanifest лежат в public/build.
+                enabled: false,
             },
             workbox: {
                 // По умолчанию плагин ставит navigateFallback: 'index.html', но в Laravel нет
@@ -66,6 +73,18 @@ export default defineConfig({
                             cacheName: 'now-page',
                             networkTimeoutSeconds: 3,
                             cacheableResponse: { statuses: [200] },
+                            // Неделя переключается на клиенте, через history.pushState (см. goToWeek
+                            // в Pages/Now.vue), поэтому в адресе оказывается /now?date=…, за которым
+                            // никакой навигации к серверу не было и в кэше его нет. Без ignoreSearch
+                            // перезагрузка на такой ссылке офлайн не нашла бы закэшированную /now
+                            // вообще. Какую именно неделю отдал кэш — неважно: Now.vue при
+                            // монтировании всё равно сверяет адрес с IndexedDB и при расхождении
+                            // перерисовывает нужную неделю.
+                            matchOptions: { ignoreSearch: true },
+                            // Записи всё же складываются по полному URL, поэтому ограничиваем их
+                            // число — иначе жёсткие перезагрузки на разных неделях копили бы копии
+                            // одной и той же страницы.
+                            expiration: { maxEntries: 5 },
                         },
                     },
                 ],

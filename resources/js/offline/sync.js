@@ -1,3 +1,4 @@
+import keyBy from 'lodash/keyBy';
 import { xsrfToken } from '@/csrf.js';
 import { getDirtyDays, markSynced, putCleanDays } from '@/offline/db.js';
 
@@ -48,9 +49,17 @@ async function push() {
 
     const data = await response.json();
 
+    // applied-ответ содержит только date/updatedAt (содержимое сервер не пересылает — оно и так
+    // наше), поэтому content берём из отправленного пакета.
+    const sent = keyBy(dirty, 'date');
+
     await Promise.all([
-        ...data.applied.map((day) => markSynced(day.date, dirty.find((d) => d.date === day.date)?.content ?? null, day.updatedAt)),
-        ...data.skipped.map((day) => markSynced(day.date, day.content, day.updatedAt)),
+        ...data.applied.map((day) => markSynced(day.date, sent[day.date]?.content ?? null, day.updatedAt, sent[day.date]?.updatedAt)),
+        // skipped — сервер победил по времени правки, забираем его содержимое себе. Если
+        // пользователь успел дописать, пока летел запрос, markSynced это увидит и не тронет
+        // строку: его правка новее и той, что мы отправили, и серверной, поэтому должна уехать
+        // следующим push'ем, а не быть перезаписанной прямо сейчас.
+        ...data.skipped.map((day) => markSynced(day.date, day.content, day.updatedAt, sent[day.date]?.updatedAt)),
     ]);
 }
 

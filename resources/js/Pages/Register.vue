@@ -1,5 +1,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
+import { guessTimezone } from '@/dayjs.js';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 
 defineProps({
@@ -11,7 +12,7 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezone: guessTimezone(),
     secret_question: '',
     secret_answer: '',
 });

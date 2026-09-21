@@ -32,6 +32,13 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   `resources/css` aliases (both mirrored in `jsconfig.json` for editor IntelliSense), and `package.json` has
   `dev`/`build` npm scripts (`"type": "module"` set since all frontend tooling here is ESM-only). `npm run
   build`/`npm run dev` both work.
+- **Date/util libs**: `dayjs` and `lodash` (both `dependencies`). **Never `import dayjs from 'dayjs'` directly** —
+  import it from `resources/js/dayjs.js`, which is the one place plugins are registered (`utc` → `timezone` →
+  `isoWeek`, in that order; `timezone` is built on `utc`). `extend()` mutates the dayjs module globally, so
+  scattering `extend` calls makes `.tz()`/`.isoWeekday()` depend on module load order, which the bundler decides.
+  That module also exports `guessTimezone()` (`dayjs.tz.guess()`), used by `Register.vue` to prefill the profile
+  and by `Now.vue` as a fallback. lodash is imported per method (`import keyBy from 'lodash/keyBy'`), never as a
+  whole — the package is CJS and a namespace import would drag the entire library into an offline-first bundle.
 - **Styling**: Tailwind CSS 4 (`tailwindcss` + `@tailwindcss/vite` in `devDependencies`) via CSS-first config —
   `resources/css/app.css` (plain CSS, not `.scss`: Tailwind v4 explicitly recommends against pairing itself with a
   Sass/Less/Stylus preprocessor — its `@theme`/`@apply` at-rules aren't guaranteed to survive being piped through
@@ -44,8 +51,14 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   `resources/js/app.js` via `@vite()`, never `resources/views/app.blade.php`), manual registration instead via
   `import { registerSW } from 'virtual:pwa-register'` in `app.js`, and a hand-written `<link rel="manifest"
   href="/manifest.webmanifest">` + `<meta name="theme-color">` in `app.blade.php` (`manifest.webmanifest` is the
-  plugin's default output filename — don't rename one side without the other). `devOptions.enabled: true` so the SW
-  and manifest also build under `npm run dev`, not just `vite build`. Manifest content (name/description/
+  plugin's default output filename — don't rename one side without the other). **`devOptions.enabled` is `false`
+  and must stay that way**: the dev service worker is served by the Vite dev server at `/dev-sw.js?dev-sw`, but the
+  page comes from Laravel on a different port, and `serviceWorker.register()` resolves relative to the *page*
+  origin — so the request lands on Laravel and 404s. It can't be pointed at the Vite port either, since a service
+  worker script must be same-origin as its page. Consequently **there is no PWA under `npm run dev` at all**:
+  `registerSW` is guarded by `import.meta.env.PROD` in `app.js`, and the `<link rel="manifest">` is wrapped in
+  `@unless (Vite::isRunningHot())` (nothing exists in `public/build` while the dev server is running, so it would
+  404 the same way). Test PWA behaviour against `npm run build`. Manifest content (name/description/
   theme_color/start_url `/now`/categories) is filled in for the project; `theme_color`/`background_color` are
   explicitly placeholder lemon-yellow pending real design.
   **Icons**: `public/favicon/` holds an app-icon export (easyappicon) — Android `mipmap-*` density buckets plus an
@@ -62,10 +75,33 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   specifically (`NetworkFirst`, 3s timeout) — not app-shell-wide `navigateFallback`, since Workbox's fallback
   mechanism expects a precached static file and there isn't one (every Laravel route is server-rendered per
   request); this only makes reload/reopen of `/now` work offline, not in-app Inertia navigation *to* `/now` from
-  elsewhere while offline. `resources/js/offline/db.js` (`idb` wrapper, single `days` store keyed by `date`, a
-  `dirty` field + index for unsynced local edits) is the actual source of truth for what `/now` displays when
-  offline — `Pages/Now.vue`'s `onMounted` overwrites the (possibly stale, cached-HTML) props with IndexedDB's state
-  when `!navigator.onLine`. `resources/js/offline/sync.js` pushes dirty days to `POST /api/days/batch` then pulls
+  elsewhere while offline. `matchOptions: { ignoreSearch: true }` on that entry is what lets a reload of
+  `/now?date=…` find the cached `/now` at all — those query strings are produced by client-side `history.pushState`
+  and were never fetched, so they're not cache keys; the consequence is the cache may hand back a *different*
+  week's HTML, which `Now.vue` is written to tolerate (see below).
+  `resources/js/offline/db.js` (`idb` wrapper: a `days` store keyed by `date` with a `dirty` field + index for
+  unsynced local edits, plus a `weeks` store of "this week was fetched whole" markers) is the actual source of
+  truth for what `/now` displays when offline. **The schema is not defined in `db.js`** — it lives as an ordered,
+  append-only migration list in `resources/js/offline/migrations.js` (one entry per version, starting at 1; the DB
+  version is derived from the last entry, never written by hand, and a load-time check rejects a list whose
+  versions aren't contiguous). Adding a store or index means appending a migration, never editing a released one
+  or touching `DB_VERSION`. Store/field names inside a migration are written as literals on purpose, so renaming a
+  constant in `db.js` can't retroactively change what an old migration meant. `db.js` also handles the
+  multi-tab cases `idb` leaves to the caller (`blocking` closes this tab's connection so another tab's upgrade
+  isn't stuck, `terminated` drops the cached promise). The `weeks` store exists because `days` alone
+  can't distinguish "day is empty" from "day was never downloaded" — and letting the user type over a day they
+  never saw would silently destroy it on the next sync (`DayController::batch` resolves by edit time, not
+  content). An unmarked week renders as "нет данных" and is read-only — but a week whose server fetch is still
+  in flight counts as loaded optimistically, otherwise every forward navigation online would flash that state.
+- **Client-side week switching**: `Pages/Now.vue` changes weeks in place — no server round-trip, so it works
+  offline. `resources/js/week.js` is a deliberate line-for-line port of `App\Support\WeekCalculator` (week bounds,
+  ISO weekday, and the spec's "week belongs to the month holding most of its days" numbering), built on dayjs;
+  **these two implementations must not drift**, and nothing enforces that, so change them together. Its functions
+  take and return dayjs objects or `'YYYY-MM-DD'` strings, never `Date`. `Now.vue`'s `onMounted`
+  derives the wanted week from `?date=` (or today in the user's timezone) and only trusts its Inertia props when
+  they describe that same week — otherwise it rebuilds from IndexedDB, which is what makes a stale/foreign
+  service-worker page harmless. Timezone comes from the `auth.user.timezone` shared prop
+  (`HandleInertiaRequests`), because "today" can't be computed server-side for a week the server never rendered. `resources/js/offline/sync.js` pushes dirty days to `POST /api/days/batch` then pulls
   `GET /api/days/sync?since=<cursor>` (cursor = server's own clock from the last sync, in `localStorage`, to avoid
   client clock drift) — wired to run on app boot and on the `online` event in `app.js`.
   `App\Http\Controllers\Api\DayController::batch()` resolves conflicts last-write-wins by the *client's claimed
