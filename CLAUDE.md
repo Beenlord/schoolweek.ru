@@ -104,6 +104,16 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   never saw would silently destroy it on the next sync (`DayController::batch` resolves by edit time, not
   content). An unmarked week renders as "нет данных" and is read-only — but a week whose server fetch is still
   in flight counts as loaded optimistically, otherwise every forward navigation online would flash that state.
+- **iOS/iPadOS touch constraints — don't "tidy" these away.** Four rules exist specifically because Safari
+  rubber-bands the document on any touch, which fights the week swipe: `html { overscroll-behavior: none }` in
+  `app.css` (kills the bounce and pull-to-refresh; it does **not** disable scrolling, so `/me` and the auth pages
+  still scroll), `overscroll-contain` on every scrollable box (`main` when not `fit`, each day cell, each
+  `textarea`) so reaching their end doesn't chain to the page, `[touch-action:pan-y_pinch-zoom]` on the week grid
+  — the swipe handlers are `.passive` and *cannot* `preventDefault()`, so horizontal panning has to be refused
+  declaratively, and the explicit `pinch-zoom` keeps zoom working (plain `touch-pan-y` would forbid it) — and
+  `min-h-dvh` rather than `min-h-screen` in `AuthLayout`, since `100vh` on iOS excludes the address bar and makes
+  a page that fits scroll anyway. What this does **not** address: tapping a day cell opens the keyboard and Safari
+  scrolls the visual viewport to reveal the caret; that needs a different fix if it ever becomes a problem.
 - **Client-side week switching**: `Pages/Now.vue` changes weeks in place — no server round-trip, so it works
   offline. `resources/js/week.js` is a deliberate line-for-line port of `App\Support\WeekCalculator` (week bounds,
   ISO weekday, and the spec's "week belongs to the month holding most of its days" numbering), built on dayjs;

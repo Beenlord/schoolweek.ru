@@ -20,7 +20,7 @@ const isProfileActive = () => page.url.startsWith('/me');
              overflow-y-auto вместо прокрутки всей страницы целиком. -->
         <main
             class="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-4 py-4 sm:px-6 sm:py-6"
-            :class="fit ? 'overflow-visible' : 'overflow-y-auto'"
+            :class="fit ? 'overflow-visible' : 'overflow-y-auto overscroll-contain'"
         >
             <slot />
         </main>

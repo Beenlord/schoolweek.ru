@@ -1,5 +1,8 @@
 <template>
-    <div class="flex min-h-screen items-center justify-center bg-paper px-4 py-10">
+    <!-- min-h-dvh, а не min-h-screen: 100vh на iOS — это высота экрана БЕЗ учёта адресной строки,
+         поэтому страница оказывается заведомо выше видимой области и скроллится, даже когда форма
+         помещается целиком. dvh считает по текущему viewport'у. -->
+    <div class="flex min-h-dvh items-center justify-center bg-paper px-4 py-10">
         <div class="w-full max-w-sm">
             <div class="mb-6 text-center">
                 <a href="/" class="font-hand text-4xl leading-none text-ink">Lemonade 🍹</a>

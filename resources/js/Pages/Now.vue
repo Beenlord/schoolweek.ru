@@ -402,8 +402,13 @@ function onTouchEnd(e) {
             <!-- Никакого overflow здесь: во время переворота створка выходит за пределы сетки,
                  и любой клиппинг по дороге режет анимацию. Полос прокрутки при этом не будет —
                  обрежет корень layout'а (h-dvh overflow-hidden), уже по краю экрана. -->
+            <!-- touch-action: обработчики свайпа пассивные и отменить прокрутку не могут, поэтому
+                 горизонтальную панораму запрещаем браузеру декларативно: иначе на iPadOS движение
+                 пальцем поперёк страницы уводит её в отскок и «съедает» жест переключения недели.
+                 pan-y оставлен, чтобы клетки дня по-прежнему прокручивались, pinch-zoom — чтобы не
+                 отбирать у пользователя масштабирование (голый touch-pan-y запретил бы и его). -->
             <div
-                class="grid min-h-0 flex-1 grid-cols-2 gap-1.5 bg-paper sm:gap-3 md:gap-4"
+                class="grid min-h-0 flex-1 grid-cols-2 gap-1.5 bg-paper [touch-action:pan-y_pinch-zoom] sm:gap-3 md:gap-4"
                 @touchstart.passive="onTouchStart"
                 @touchend.passive="onTouchEnd"
             >
@@ -431,12 +436,12 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
                                 :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
+                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @input="saveSoon(day)"
                                 @blur="closeDay(day)"
@@ -483,12 +488,12 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
                                 :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
+                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @input="saveSoon(day)"
                                 @blur="closeDay(day)"
@@ -518,12 +523,12 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
                                 :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
+                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @input="saveSoon(day)"
                                 @blur="closeDay(day)"
