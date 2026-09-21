@@ -69,31 +69,32 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
                     >
                         <template #footer="{ editor }">
                             <div class="flex shrink-0 items-center gap-2 border-t border-paper-line/50 px-2 py-1">
+                                <!-- overflow-x: на совсем узком экране шесть зон нажатия по 44px
+                                     могут не поместиться в строку — пусть тогда прокручиваются,
+                                     а не выдавливают друг друга. -->
+                                <EditorToolbar :editor="editor" class="no-scrollbar min-w-0 flex-1 overflow-x-auto" />
+
+                                <span class="h-6 w-px shrink-0 bg-paper-line/60" aria-hidden="true"></span>
+
                                 <!-- «Готово», а не «Закрыть»: закрытие окна и есть завершение
                                      правки — Now.vue на него досохраняет день. Отсюда галочка,
                                      а не крестик.
-                                     Заливки намеренно нет: акцентным фоном у кнопок панели
-                                     помечается включённое начертание, и залитая кнопка читалась
-                                     бы как нажатая. Достаточно тонкого контура — он отделяет её
-                                     от кнопок форматирования, не притворяясь состоянием. -->
+                                     Акцентная заливка здесь уместна именно потому, что кнопка
+                                     стоит справа, в стороне от панели: тем же цветом помечается
+                                     включённое начертание у кнопок форматирования, и рядом с ними
+                                     залитая кнопка читалась бы как нажатая, а на отшибе — как
+                                     главное действие экрана, чем она и является. -->
                                 <button
                                     type="button"
                                     aria-label="Готово"
                                     title="Готово"
-                                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted ring-1 ring-paper-line/70 transition-colors hover:bg-today hover:text-ink"
+                                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-ink transition-colors hover:bg-accent-dark"
                                     @click="emit('close')"
                                 >
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
                                         <path d="M5 12.5l4.5 4.5L19 7" />
                                     </svg>
                                 </button>
-
-                                <span class="h-6 w-px shrink-0 bg-paper-line/60" aria-hidden="true"></span>
-
-                                <!-- overflow-x: на совсем узком экране шесть зон нажатия по 44px
-                                     могут не поместиться в строку — пусть тогда прокручиваются,
-                                     а не выдавливают друг друга. -->
-                                <EditorToolbar :editor="editor" class="no-scrollbar min-w-0 flex-1 overflow-x-auto" />
                             </div>
                         </template>
                     </DayEditor>
