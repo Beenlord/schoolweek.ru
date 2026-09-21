@@ -104,8 +104,11 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   never saw would silently destroy it on the next sync (`DayController::batch` resolves by edit time, not
   content). An unmarked week renders as "нет данных" and is read-only — but a week whose server fetch is still
   in flight counts as loaded optimistically, otherwise every forward navigation online would flash that state.
-- **iOS/iPadOS touch constraints — don't "tidy" these away.** Four rules exist specifically because Safari
-  rubber-bands the document on any touch, which fights the week swipe: `html { overscroll-behavior: none }` in
+- **iOS/iPadOS touch constraints — don't "tidy" these away.** Five rules exist because Safari both rubber-bands
+  the document on any touch and zooms on double-tap, either of which fights the week swipe:
+  `body { touch-action: manipulation }` in `app.css` (kills double-tap zoom while keeping panning and pinch-zoom —
+  **not** `user-scalable=no`/`maximum-scale=1` in the viewport meta, which iOS Safari has deliberately ignored
+  since iOS 10 and which would kill pinch-zoom where it is honoured), `html { overscroll-behavior: none }` in
   `app.css` (kills the bounce and pull-to-refresh; it does **not** disable scrolling, so `/me` and the auth pages
   still scroll), `overscroll-contain` on every scrollable box (`main` when not `fit`, each day cell, each
   `textarea`) so reaching their end doesn't chain to the page, `[touch-action:pan-y_pinch-zoom]` on the week grid
