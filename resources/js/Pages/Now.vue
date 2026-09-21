@@ -85,6 +85,7 @@ onUnmounted(() => {
     window.removeEventListener('popstate', onPopState);
     // Страница уходит — недописанная правка не должна уехать вместе с ней.
     saveSoon.flush();
+    clearHighlight();
 });
 
 /** Понедельник недели, которую просит адресная строка (или текущей, если даты в адресе нет). */
@@ -406,13 +407,52 @@ function goToWeek(offsetDays) {
 // диапазонами «[дата–дата]»; вместо него системный выбор даты — он привычнее, умеет листать годы
 // и не требует своей вёрстки. Неделя вычисляется из выбранного дня, попадать ровно в понедельник
 // пользователю не нужно.
+// Выделение выбранного дня после перехода по дате. Без него переход «в никуда»: неделя сменилась,
+// а какой именно день просили — на сетке ничем не отмечено.
+//
+// Здесь хранится нужный день, но класс по нему получают ОСТАЛЬНЫЕ клетки: выделение сделано от
+// обратного — соседи ненадолго приглушаются, а нужный день остаётся единственным в полную силу
+// (см. .day-dimmed в app.css).
+const HIGHLIGHT_DURATION = 2000;
+// Должно совпадать с длительностью анимации переворота в app.css (.flip-page-cover): подсветка
+// начинается, когда створка уже легла, иначе её половину не видно за летящей страницей.
+const FLIP_DURATION = 620;
+
+const highlightedDate = ref(null);
+let highlightTimers = [];
+
+function clearHighlight() {
+    highlightTimers.forEach((timer) => clearTimeout(timer));
+    highlightTimers = [];
+    highlightedDate.value = null;
+}
+
+function highlightDay(date, delay) {
+    clearHighlight();
+
+    const show = () => {
+        highlightedDate.value = date;
+        highlightTimers.push(setTimeout(() => { highlightedDate.value = null; }, HIGHLIGHT_DURATION));
+    };
+
+    if (delay > 0) {
+        highlightTimers.push(setTimeout(show, delay));
+    } else {
+        show();
+    }
+}
+
 function onWeekPicked(value) {
     // Поле даты можно очистить — тогда менять нечего.
     if (!isValidDate(value)) {
         return;
     }
 
-    navigateToWeek(formatDate(weekStart(parseDate(value))));
+    const picked = formatDate(parseDate(value));
+    // navigateToWeek вернёт false, если неделя та же — тогда переворота не будет и ждать нечего.
+    const flipping = navigateToWeek(formatDate(weekStart(parseDate(value))));
+
+    highlightDay(picked, flipping ? FLIP_DURATION : 0);
 }
 
 // Кнопка «домой» в нижней панели. На /now это не переход по ссылке, а перелистывание к текущей
@@ -507,8 +547,16 @@ function onTouchEnd(e) {
             >
                 <div class="relative min-h-0">
                 <!-- Пустой разворот-заглушка: пока створка отвёрнута, её колонка иначе зияет
-                     фоном страницы. Повторяет форму клеток, кликов не перехватывает. -->
-                <div class="pointer-events-none absolute inset-0 z-0 grid grid-rows-3 gap-1.5 sm:gap-3 md:gap-4" aria-hidden="true">
+                     фоном страницы. Повторяет форму клеток, кликов не перехватывает.
+                     Приглушается вместе с клетками: иначе сквозь полупрозрачную клетку проступала
+                     бы эта заглушка, и гасло бы будто одно содержимое, а рамка и бумага оставались
+                     на месте. Под выбранным днём она тоже приглушена, но этого не видно — он
+                     непрозрачный и накрывает её целиком. -->
+                <div
+                    class="pointer-events-none absolute inset-0 z-0 grid grid-rows-3 gap-1.5 sm:gap-3 md:gap-4"
+                    :class="{ 'day-dimmed': highlightedDate }"
+                    aria-hidden="true"
+                >
                     <div
                         v-for="n in 3"
                         :key="n"
@@ -521,7 +569,7 @@ function onTouchEnd(e) {
                 <template v-for="day in [monday, tuesday, wednesday]" :key="day.date">
                     <article
                         class="ruled-margin flex min-h-0 flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
-                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
+                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday, 'day-dimmed': highlightedDate && day.date !== highlightedDate }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:mb-1 sm:text-sm">
@@ -544,7 +592,11 @@ function onTouchEnd(e) {
                 </div>
 
                 <div class="relative min-h-0">
-                <div class="pointer-events-none absolute inset-0 z-0 grid grid-rows-3 gap-1.5 sm:gap-3 md:gap-4" aria-hidden="true">
+                <div
+                    class="pointer-events-none absolute inset-0 z-0 grid grid-rows-3 gap-1.5 sm:gap-3 md:gap-4"
+                    :class="{ 'day-dimmed': highlightedDate }"
+                    aria-hidden="true"
+                >
                     <div
                         v-for="n in 2"
                         :key="n"
@@ -564,7 +616,7 @@ function onTouchEnd(e) {
                 <template v-for="day in [thursday, friday]" :key="day.date">
                     <article
                         class="ruled-margin flex min-h-0 flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
-                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
+                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday, 'day-dimmed': highlightedDate && day.date !== highlightedDate }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:mb-1 sm:text-sm">
@@ -590,7 +642,7 @@ function onTouchEnd(e) {
                         v-for="day in [saturday, sunday]"
                         :key="day.date"
                         class="ruled-margin flex min-h-0 flex-col overflow-hidden rounded-lg bg-paper p-1 shadow-sm ring-1 ring-paper-line/70 sm:p-2.5"
-                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
+                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday, 'day-dimmed': highlightedDate && day.date !== highlightedDate }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:text-sm">
