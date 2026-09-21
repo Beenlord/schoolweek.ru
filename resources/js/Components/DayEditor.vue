@@ -59,11 +59,18 @@ defineExpose({ focus: () => editor.value?.commands.focus('end') });
              строк на полстроки. py-6 — ровно один шаг. Горизонтальные на ритм не влияют.
              leading-6 закрепляет высоту строки за --line-h, а не оставляет её на усмотрение
              унаследованного значения; text-base заодно убирает автозум iOS при фокусе, который
-             срабатывает на поле со шрифтом мельче 16px. -->
+             срабатывает на поле со шрифтом мельче 16px.
+
+             basis в десять строк, а не min-height: на большом экране окно подстраивается под
+             содержимое (sm:h-auto у карточки), и у пустого дня это была всего пара строк — писать
+             неудобно. Но именно предпочитаемый размер, а не минимальный: когда высоты мало
+             (телефон в альбомной ориентации с открытой клавиатурой), поле обязано ужаться, иначе
+             оно выдавило бы панель форматирования за нижний край окна. grow/shrink по отдельности,
+             а не flex-1 — иначе сокращение flex перебило бы basis собственным нулём. -->
         <EditorContent
             v-if="editor"
             :editor="editor"
-            class="day-editor ruled-paper no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 text-base leading-6 [--line-h:1.5rem]"
+            class="day-editor ruled-paper no-scrollbar min-h-0 min-w-0 grow shrink basis-[calc(10*var(--line-h))] overflow-y-auto overscroll-contain px-4 py-6 text-base leading-6 [--line-h:1.5rem]"
         />
 
         <!-- Подвал собирает вызывающий: там рядом стоят и кнопки форматирования, и «Готово»,
