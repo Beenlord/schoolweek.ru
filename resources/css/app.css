@@ -176,3 +176,140 @@ body {
 .flip-page-cover .flip-page-face {
     animation: week-page-face 0.62s cubic-bezier(0.37, 0, 0.32, 1);
 }
+
+/*
+ * Содержимое дня — и в превью (Components/RichText.vue), и в редакторе (Components/DayEditor.vue).
+ *
+ * Общее правило для всего, что здесь: НИКАКИХ вертикальных отступов и собственных line-height.
+ * Под текстом лежит разлиновка .ruled-paper с шагом --line-h, и любой margin между абзацами или
+ * нестандартная высота строки сдвигают текст относительно линий — дальше расхождение только
+ * накапливается. Отступы у списков поэтому исключительно горизонтальные.
+ */
+.rich-text,
+.day-editor .ProseMirror {
+    /* Длинное неразрывное слово (ссылка, «ааааа…») обязано переноситься, а не уезжать за край:
+       по горизонтали содержимое дня никогда не выходит за свою рамку — ни в клетке, ни в окне. */
+    overflow-wrap: break-word;
+}
+
+.rich-text > *,
+.day-editor .ProseMirror > * {
+    margin: 0;
+    line-height: inherit;
+}
+
+.rich-text ul,
+.rich-text ol,
+.day-editor .ProseMirror ul,
+.day-editor .ProseMirror ol {
+    margin: 0;
+    padding-left: 1.4em;
+    list-style-position: outside;
+}
+
+.rich-text ul,
+.day-editor .ProseMirror ul {
+    list-style-type: disc;
+}
+
+.rich-text ol,
+.day-editor .ProseMirror ol {
+    list-style-type: decimal;
+}
+
+.rich-text li,
+.day-editor .ProseMirror li {
+    margin: 0;
+    line-height: inherit;
+}
+
+.rich-text li > p,
+.day-editor .ProseMirror li > p {
+    margin: 0;
+    line-height: inherit;
+}
+
+/* Списки задач — без маркера: его роль играет сам чекбокс. */
+.rich-text__tasks,
+.day-editor .ProseMirror ul[data-type='taskList'] {
+    list-style: none;
+    padding-left: 0.2em;
+}
+
+.rich-text__tasks > li,
+.day-editor .ProseMirror ul[data-type='taskList'] > li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4em;
+}
+
+/* Tiptap заворачивает чекбокс в <label> со служебным <span>. Label должен остаться прозрачной
+   обёрткой: собственный блочный контекст добавил бы пункту лишнюю высоту, а пустой span —
+   лишнюю ширину рядом с квадратом. */
+.day-editor .ProseMirror ul[data-type='taskList'] > li > label {
+    display: flex;
+    flex: 0 0 auto;
+    line-height: inherit;
+}
+
+.day-editor .ProseMirror ul[data-type='taskList'] > li > label > span {
+    display: none;
+}
+
+.rich-text__task-body,
+.day-editor .ProseMirror ul[data-type='taskList'] > li > div {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/*
+ * Чекбокс рисуется сам и меряется в em, а не в пикселях. Нативный <input type="checkbox"> в iOS
+ * заметно выше 16px, а шаг линовки в клетке недели на телефоне — ровно 1rem: системный чекбокс
+ * просто не поместился бы в строку и развалил бы ритм.
+ */
+.rich-text__check,
+.day-editor .ProseMirror ul[data-type='taskList'] input[type='checkbox'] {
+    appearance: none;
+    -webkit-appearance: none;
+    /* Обязательно: элементы форм не наследуют шрифт, у <input> он свой, браузерный (обычно
+       ~13px). Без этого все em-размеры ниже считались бы не от текста строки, а от него. */
+    font: inherit;
+    flex: 0 0 auto;
+    width: 0.85em;
+    height: 0.85em;
+    margin: 0;
+    /*
+     * Квадрат центрируется по высоте строки, а не прижимается к её верху. Величина вычисляется,
+     * а не подбирается на глаз: (высота строки − размер квадрата) / 2. Благодаря этому одно
+     * правило одинаково верно и в клетке недели (шаг линовки 1rem на телефоне, 1.5rem дальше,
+     * шрифт 12/14px), и в редакторе (шаг 1.5rem, шрифт 16px) — подогнанное под один случай
+     * фиксированное значение в остальных промахивалось бы.
+     */
+    margin-top: calc((var(--line-h, 1.5rem) - 0.85em) / 2);
+    border: 1.5px solid var(--color-ink-muted);
+    border-radius: 0.2em;
+    background-color: transparent;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0.7em 0.7em;
+}
+
+.rich-text__check.is-checked,
+.day-editor .ProseMirror ul[data-type='taskList'] input[type='checkbox']:checked {
+    border-color: var(--color-accent-dark);
+    background-color: var(--color-accent);
+    /* Галочка фоном, а не псевдоэлементом: у input'а псевдоэлементов нет. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%233a3226' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6'/%3E%3C/svg%3E");
+}
+
+/* Выполненный пункт — приглушённым и зачёркнутым, как вычеркнутое дело в бумажном дневнике. */
+.rich-text__tasks > li:has(.is-checked) .rich-text__task-body,
+.day-editor .ProseMirror ul[data-type='taskList'] > li[data-checked='true'] > div {
+    color: var(--color-ink-muted);
+    text-decoration: line-through;
+}
+
+.day-editor .ProseMirror {
+    outline: none;
+    min-height: 100%;
+}

@@ -9,6 +9,10 @@
   "dependencies": {
     "@inertiajs/vite": "^3.7.1",
     "@inertiajs/vue3": "^3.7.1",
+    "@tiptap/extension-list": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
+    "@tiptap/vue-3": "^3.31.3",
     "@vitejs/plugin-vue": "^6.0.9",
     "dayjs": "^1.11.23",
     "idb": "^8.0.0",

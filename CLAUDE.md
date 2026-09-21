@@ -43,6 +43,22 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   `resources/css` aliases (both mirrored in `jsconfig.json` for editor IntelliSense), and `package.json` has
   `dev`/`build` npm scripts (`"type": "module"` set since all frontend tooling here is ESM-only). `npm run
   build`/`npm run dev` both work.
+- **Day editor**: Tiptap 3 (`@tiptap/vue-3`, `@tiptap/starter-kit`, `@tiptap/extension-list`, `@tiptap/pm`) inside
+  a modal (`Components/DayModal.vue` → `Components/DayEditor.vue`), replacing the old inline `<textarea>`.
+  `days.content` **stays markdown**; conversion both ways lives in `resources/js/markdown.js`, hand-written
+  rather than via `tiptap-markdown`, and round-trip stability is the contract — `serializeDoc` escapes anything
+  that would re-parse as markup. Nested lists are supported because Tab creates them and silently dropping them
+  on save would destroy user content. **StarterKit deliberately disables headings/blockquote/code/strike/link/
+  hardBreak**: the serializer has no representation for them, so allowing their creation would lose formatting
+  at save time — if you add a node type to the editor, add it to `markdown.js` in the same change.
+  `Components/RichText.vue` renders the same content read-only for week-grid previews via `h()`, never `v-html`,
+  which is why there is no HTML sanitizer anywhere — there is no injection path to sanitize.
+  The toolbar is a plain footer inside the modal. It ends up above the on-screen keyboard without any
+  positioning of its own: `composables/useKeyboardInset.js` reports the keyboard height and the visual
+  viewport's `offsetTop`, the modal shrinks to the visible area via padding, and its bottom edge therefore
+  *is* the top of the keyboard. Don't reintroduce `position: fixed` on the toolbar — that was the earlier
+  design and it needed a breakpoint plus per-frame offsets to do the same job. Editor state still flows through the
+  existing `saveSoon`/`saveDay`/IndexedDB path unchanged — content is a plain string to everything downstream.
 - **Date/util libs**: `dayjs` and `lodash` (both `dependencies`). **Never `import dayjs from 'dayjs'` directly** —
   import it from `resources/js/dayjs.js`, which is the one place plugins are registered (`utc` → `timezone` →
   `isoWeek`, in that order; `timezone` is built on `utc`). `extend()` mutates the dayjs module globally, so

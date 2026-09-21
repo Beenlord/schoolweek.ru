@@ -9,6 +9,8 @@ import { getDaysInRange, isWeekCached, markSynced, markWeekCached, putCleanDays,
 import { syncNow } from '@/offline/sync.js';
 import { addDays, formatDate, isValidDate, isoWeekday, parseDate, todayIn, weekDates, weekInfo, weekStart } from '@/week.js';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import DayModal from '@/Components/DayModal.vue';
+import RichText from '@/Components/RichText.vue';
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -245,18 +247,34 @@ const friday = computed(() => dayByWeekday(5));
 const saturday = computed(() => dayByWeekday(6));
 const sunday = computed(() => dayByWeekday(7));
 
-// Раньше здесь резалось до ~6/3 строк «как в бумажном дневнике». Теперь клетка прокручивается,
-// поэтому отдаём все строки: видимую часть ограничивает высота самой клетки, остальное
-// доступно скроллом.
-//
-// Каждая строка рисуется своим блоком с whitespace-pre-wrap + wrap-break-word, то есть длинная
-// строка переносится внутри клетки, а не обрезается (по просьбе пользователей — раньше хвост
-// просто пропадал из виду). Шаг линовки при этом не ломается: перенос порождает обычные строки
-// с тем же line-height, а он совпадает с --line-h у .ruled-paper (см. app.css).
-// Пустая строка отдаётся как неразрывный пробел — иначе блок схлопнулся бы в нулевую высоту
-// и пустые строки пользователя исчезли бы из превью.
-function contentLines(day) {
-    return (day.content ?? '').split('\n');
+// День, открытый в модалке. Держим не сам объект, а дату: editableDays пересобирается при
+// переключении недели, и ссылка на старый объект пережила бы свою неделю.
+const editingDay = computed(() => editableDays.value.find((day) => day.date === editingDate.value) ?? null);
+
+const WEEKDAY_FULL = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+
+const editingTitle = computed(() => {
+    const day = editingDay.value;
+
+    if (!day) {
+        return '';
+    }
+
+    return `${WEEKDAY_FULL[day.weekday - 1]}, ${day.date.slice(8, 10)}.${day.date.slice(5, 7)}`;
+});
+
+// Правка из редактора: кладём в тот же объект дня, что показывает сетка, и отправляем через уже
+// существующее отложенное сохранение — ни IndexedDB, ни синхронизация об этом ничего не знают,
+// для них содержимое как было строкой, так и осталось.
+function onEditorInput(value) {
+    const day = editingDay.value;
+
+    if (!day) {
+        return;
+    }
+
+    day.content = value;
+    saveSoon(day);
 }
 
 async function saveDay(day) {
@@ -326,9 +344,16 @@ const AUTOSAVE_DELAY = 700;
 const AUTOSAVE_MAX_WAIT = 5000;
 const saveSoon = debounce((day) => saveDay(day), AUTOSAVE_DELAY, { maxWait: AUTOSAVE_MAX_WAIT });
 
-function closeDay(day) {
+function closeDay() {
+    const day = editingDay.value;
+
     editingDate.value = null;
-    // Уход из клетки — это уже не пауза в наборе, а конец правки: отменяем отложенный вызов и
+
+    if (!day) {
+        return;
+    }
+
+    // Закрытие модалки — это уже не пауза в наборе, а конец правки: отменяем отложенный вызов и
     // сохраняем сразу, иначе получилось бы два запроса подряд с одним и тем же содержимым.
     saveSoon.cancel();
     saveDay(day);
@@ -435,7 +460,7 @@ function onTouchEnd(e) {
                 <template v-for="day in [monday, tuesday, wednesday]" :key="day.date">
                     <article
                         class="ruled-margin flex min-h-0 flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
-                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-text' : 'cursor-default']"
+                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:mb-1 sm:text-sm">
@@ -444,19 +469,10 @@ function onTouchEnd(e) {
                         </header>
 
                         <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [--line-h:1rem] sm:[--line-h:1.5rem]">
-                            <textarea
-                                v-if="editingDate === day.date"
-                                v-model="day.content"
-                                :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 wrap-break-word text-ink outline-none sm:text-sm sm:leading-6"
-                                @click.stop
-                                @input="saveSoon(day)"
-                                @blur="closeDay(day)"
-                            ></textarea>
-                            <div v-else class="text-xs text-ink-muted sm:text-sm">
+                            <div class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">{{ emptyLabel }}</div>
-                            <div v-for="(line, i) in contentLines(day)" :key="i" class="leading-4 whitespace-pre-wrap wrap-break-word sm:leading-6">{{ line || ' ' }}</div>
-                        </div>
+                                <RichText v-else :content="day.content" class="leading-4 sm:leading-6" />
+                            </div>
                         </div>
 
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
@@ -487,7 +503,7 @@ function onTouchEnd(e) {
                 <template v-for="day in [thursday, friday]" :key="day.date">
                     <article
                         class="ruled-margin flex min-h-0 flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
-                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-text' : 'cursor-default']"
+                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:mb-1 sm:text-sm">
@@ -496,19 +512,10 @@ function onTouchEnd(e) {
                         </header>
 
                         <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [--line-h:1rem] sm:[--line-h:1.5rem]">
-                            <textarea
-                                v-if="editingDate === day.date"
-                                v-model="day.content"
-                                :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 wrap-break-word text-ink outline-none sm:text-sm sm:leading-6"
-                                @click.stop
-                                @input="saveSoon(day)"
-                                @blur="closeDay(day)"
-                            ></textarea>
-                            <div v-else class="text-xs text-ink-muted sm:text-sm">
+                            <div class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">{{ emptyLabel }}</div>
-                            <div v-for="(line, i) in contentLines(day)" :key="i" class="leading-4 whitespace-pre-wrap wrap-break-word sm:leading-6">{{ line || ' ' }}</div>
-                        </div>
+                                <RichText v-else :content="day.content" class="leading-4 sm:leading-6" />
+                            </div>
                         </div>
 
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
@@ -522,7 +529,7 @@ function onTouchEnd(e) {
                         v-for="day in [saturday, sunday]"
                         :key="day.date"
                         class="ruled-margin flex min-h-0 flex-col overflow-hidden rounded-lg bg-paper p-1 shadow-sm ring-1 ring-paper-line/70 sm:p-2.5"
-                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-text' : 'cursor-default']"
+                        :class="[{ 'ring-2 ring-accent-dark bg-today': day.isToday }, weekLoaded ? 'cursor-pointer' : 'cursor-default']"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:text-sm">
@@ -531,19 +538,10 @@ function onTouchEnd(e) {
                         </header>
 
                         <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [--line-h:1rem] sm:[--line-h:1.5rem]">
-                            <textarea
-                                v-if="editingDate === day.date"
-                                v-model="day.content"
-                                :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 wrap-break-word text-ink outline-none sm:text-sm sm:leading-6"
-                                @click.stop
-                                @input="saveSoon(day)"
-                                @blur="closeDay(day)"
-                            ></textarea>
-                            <div v-else class="text-xs text-ink-muted sm:text-sm">
+                            <div class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">{{ emptyLabel }}</div>
-                            <div v-for="(line, i) in contentLines(day)" :key="i" class="leading-4 whitespace-pre-wrap wrap-break-word sm:leading-6">{{ line || ' ' }}</div>
-                        </div>
+                                <RichText v-else :content="day.content" class="leading-4 sm:leading-6" />
+                            </div>
                         </div>
 
                         <span v-if="pendingSaves[day.date]" class="mt-1 text-xs text-ink-muted">Сохранение…</span>
@@ -554,6 +552,19 @@ function onTouchEnd(e) {
                 </div>
             </div>
         </div>
+
+        <!-- Редактор дня — модальный, как в ТЗ («Редактирование дня»). Рисуется один на страницу,
+             а не по одному в каждой клетке: клетка слишком мала, чтобы писать в ней, и на телефоне
+             её вдобавок наполовину закрывает клавиатура. :key заставляет пересоздать редактор при
+             переходе на другой день — Tiptap задаёт документ один раз, при создании. -->
+        <DayModal
+            v-if="editingDay"
+            :key="editingDay.date"
+            :title="editingTitle"
+            :model-value="editingDay.content ?? ''"
+            @update:model-value="onEditorInput"
+            @close="closeDay"
+        />
 
         <template #bottom-bar>
             <button
