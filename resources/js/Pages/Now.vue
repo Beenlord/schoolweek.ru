@@ -376,14 +376,42 @@ function closeDay() {
 // /now?date=, то есть поход на сервер — и офлайн листание просто не работало. Теперь адрес
 // правится через history.pushState (чтобы перезагрузка и «назад» в браузере вели себя как
 // раньше), а данные приходят из IndexedDB и, если есть сеть, из /api/weeks/{date}.
-function goToWeek(offsetDays) {
-    const next = formatDate(addDays(parseDate(currentWeekStart.value), offsetDays));
+/**
+ * Переход на неделю, начинающуюся с startStr: направление анимации, запись в историю, загрузка.
+ *
+ * @returns {boolean} false, если мы уже на этой неделе и делать нечего.
+ */
+function navigateToWeek(startStr) {
+    if (startStr === currentWeekStart.value) {
+        return false;
+    }
 
-    flipSide.value = offsetDays > 0 ? 'next' : 'prev';
+    // Направление считаем сравнением дат, а не знаком смещения: сюда приходят и соседние недели
+    // от кнопок, и произвольно далёкая текущая неделя от кнопки «домой».
+    flipSide.value = startStr > currentWeekStart.value ? 'next' : 'prev';
     flipToken.value++;
 
-    window.history.pushState({ date: next }, '', `/now?date=${next}`);
-    loadWeek(next);
+    window.history.pushState({ date: startStr }, '', `/now?date=${startStr}`);
+    loadWeek(startStr);
+
+    return true;
+}
+
+function goToWeek(offsetDays) {
+    navigateToWeek(formatDate(addDays(parseDate(currentWeekStart.value), offsetDays)));
+}
+
+// Кнопка «домой» в нижней панели. На /now это не переход по ссылке, а перелистывание к текущей
+// неделе: перезагрузка здесь сбрасывала бы состояние страницы и офлайн-вид, да ещё и не сработала
+// бы без сети.
+function goToToday() {
+    const target = formatDate(weekStart(parseDate(todayIn(timezone))));
+
+    if (!navigateToWeek(target)) {
+        // Уже на текущей неделе — листать некуда, но адрес стоит подчистить от ?date=,
+        // чтобы перезагрузка открыла просто /now.
+        window.history.replaceState({}, '', '/now');
+    }
 }
 
 // Кнопки «назад/вперёд» в браузере: pushState выше складывает недели в историю, значит их надо
@@ -424,7 +452,7 @@ function onTouchEnd(e) {
 </script>
 
 <template>
-    <AppLayout fit>
+    <AppLayout fit :home-handler="goToToday" home-label="К текущей неделе">
         <div class="Now NowPage flex h-full min-h-0 flex-col">
             <p
                 v-if="!isOnline"

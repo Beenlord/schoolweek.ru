@@ -7,6 +7,14 @@ defineProps({
     // анимацию). Прокрутки при этом всё равно не будет — обрежет корень layout'а по краю
     // экрана. Для обычных страниц (/me) оставляем собственный скролл внутри main.
     fit: { type: Boolean, default: false },
+
+    // Что делает кнопка «домой». Если обработчика нет, она остаётся обычной ссылкой на /now —
+    // именно этого и ждёшь от неё на других страницах. Если есть, страница берёт переход на
+    // себя и кнопка становится <button>: на /now «домой» означает не перезагрузку, а
+    // перелистывание к текущей неделе, и подменять это ссылкой было бы враньём — ссылка
+    // открывалась бы в новой вкладке по Ctrl+клику и рвала бы состояние страницы.
+    homeHandler: { type: Function, default: null },
+    homeLabel: { type: String, default: 'На главную' },
 });
 
 const page = usePage();
@@ -44,13 +52,17 @@ const isProfileActive = () => page.url.startsWith('/me');
                  Подложка чуть плотнее чисто эппловской: у Material поверхность тональная, а не
                  почти прозрачная. -->
             <div class="pointer-events-auto flex items-center gap-1 rounded-3xl bg-paper/75 px-2 py-1.5 shadow-[0_8px_28px_-12px_rgba(58,50,38,0.45)] ring-1 ring-paper-line/50 backdrop-blur-xl">
-                <a
-                    href="/now"
-                    aria-label="На главную"
+                <component
+                    :is="homeHandler ? 'button' : 'a'"
+                    :type="homeHandler ? 'button' : null"
+                    :href="homeHandler ? null : '/now'"
+                    :aria-label="homeLabel"
+                    :title="homeLabel"
                     class="flex h-11 w-11 items-center justify-center rounded-full text-xl leading-none transition-colors hover:bg-today/60"
+                    @click="homeHandler && homeHandler()"
                 >
                     🍹
-                </a>
+                </component>
 
                 <slot name="bottom-bar" />
 
