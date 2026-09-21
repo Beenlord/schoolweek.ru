@@ -247,7 +247,14 @@ const sunday = computed(() => dayByWeekday(7));
 
 // Раньше здесь резалось до ~6/3 строк «как в бумажном дневнике». Теперь клетка прокручивается,
 // поэтому отдаём все строки: видимую часть ограничивает высота самой клетки, остальное
-// доступно скроллом. Горизонтально строка по-прежнему не переносится, а обрезается (truncate).
+// доступно скроллом.
+//
+// Каждая строка рисуется своим блоком с whitespace-pre-wrap + wrap-break-word, то есть длинная
+// строка переносится внутри клетки, а не обрезается (по просьбе пользователей — раньше хвост
+// просто пропадал из виду). Шаг линовки при этом не ломается: перенос порождает обычные строки
+// с тем же line-height, а он совпадает с --line-h у .ruled-paper (см. app.css).
+// Пустая строка отдаётся как неразрывный пробел — иначе блок схлопнулся бы в нулевую высоту
+// и пустые строки пользователя исчезли бы из превью.
 function contentLines(day) {
     return (day.content ?? '').split('\n');
 }
@@ -441,14 +448,14 @@ function onTouchEnd(e) {
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
                                 :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
+                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 wrap-break-word text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @input="saveSoon(day)"
                                 @blur="closeDay(day)"
                             ></textarea>
                             <div v-else class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">{{ emptyLabel }}</div>
-                            <div v-for="(line, i) in contentLines(day)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in contentLines(day)" :key="i" class="leading-4 whitespace-pre-wrap wrap-break-word sm:leading-6">{{ line || ' ' }}</div>
                         </div>
                         </div>
 
@@ -493,14 +500,14 @@ function onTouchEnd(e) {
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
                                 :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
+                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 wrap-break-word text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @input="saveSoon(day)"
                                 @blur="closeDay(day)"
                             ></textarea>
                             <div v-else class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">{{ emptyLabel }}</div>
-                            <div v-for="(line, i) in contentLines(day)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in contentLines(day)" :key="i" class="leading-4 whitespace-pre-wrap wrap-break-word sm:leading-6">{{ line || ' ' }}</div>
                         </div>
                         </div>
 
@@ -528,14 +535,14 @@ function onTouchEnd(e) {
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
                                 :ref="(el) => el?.focus()"
-                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 text-ink outline-none sm:text-sm sm:leading-6"
+                                class="h-full w-full resize-none overscroll-contain bg-transparent font-sans text-xs leading-4 wrap-break-word text-ink outline-none sm:text-sm sm:leading-6"
                                 @click.stop
                                 @input="saveSoon(day)"
                                 @blur="closeDay(day)"
                             ></textarea>
                             <div v-else class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">{{ emptyLabel }}</div>
-                            <div v-for="(line, i) in contentLines(day)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in contentLines(day)" :key="i" class="leading-4 whitespace-pre-wrap wrap-break-word sm:leading-6">{{ line || ' ' }}</div>
                         </div>
                         </div>
 

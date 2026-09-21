@@ -148,8 +148,12 @@ implementing schedule/day or auth features. Highlights, so context isn't lost if
   no raw markdown syntax shown to the user), not split into sub-rows. Week = Monday-anchored, not stored as its own
   entity, just computed.
 - **Week grid** mirrors the paper diary spread: Mon/Tue/Wed in one column, Thu/Fri/Sat/Sun in the other, with Sat and
-  Sun as two independent half-height cells (not a merged cell). Day-cell previews clip at a fixed number of visual
-  lines (~6 for weekdays, ~3 for Sat/Sun) with no line-wrapping — an overlong line is truncated, not wrapped.
+  Sun as two independent half-height cells (not a merged cell). Day-cell previews **wrap** long lines exactly the
+  way the editor does (`whitespace-pre-wrap` + `wrap-break-word`), so nothing spills past the cell edge. The spec
+  originally called for truncation instead; users asked for wrapping, since a truncated tail was invisible with no
+  hint that it existed. Wrapping is safe for the ruled background because the wrapped lines keep the same
+  `line-height`, which must stay equal to `--line-h` on `.ruled-paper`. Empty lines are rendered as a non-breaking
+  space — a plain one would collapse and the line would lose its height.
 - **Week navigation**: swipe forward/back one week; a header showing year/month/week-number opens a calendar-style
   week picker (cells are `[date–date]` ranges instead of days). Week number is counted from the start of the month
   (not ISO), and a week split across two months belongs to whichever month has the majority of its days.
