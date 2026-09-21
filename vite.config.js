@@ -20,12 +20,37 @@ export default defineConfig({
             // resources/views/app.blade.php он не трогает. Поэтому регистрация — вручную в app.js
             // (import { registerSW } from 'virtual:pwa-register'), а <link rel="manifest"> — руками в app.blade.php.
             injectRegister: false,
+            // Vite-база здесь — /build/ (туда Laravel складывает сборку), и по умолчанию SW
+            // регистрировался бы как /build/sw.js. Скоуп service worker'а не может быть шире
+            // каталога, из которого он отдан, поэтому такой SW физически не в состоянии
+            // контролировать /now — офлайн не работал. buildBase + scope переносят регистрацию
+            // в корень сайта (сам файл по-прежнему собирается в public/build/sw.js, наружу его
+            // отдаёт роут /sw.js — см. routes/web.php).
+            buildBase: '/',
+            scope: '/',
             devOptions: {
                 // Иначе манифест и service worker собираются только при `vite build`, а через `npm run dev`
                 // (как обычно ведётся разработка) PWA-функциональность проверить будет нельзя.
                 enabled: true,
             },
             workbox: {
+                // По умолчанию плагин ставит navigateFallback: 'index.html', но в Laravel нет
+                // HTML-энтрипоинта и index.html в precache-манифест не попадает. Workbox на
+                // верхнем уровне звал createHandlerBoundToURL('index.html'), тот бросал
+                // non-precached-url — и service worker падал при выполнении, то есть не
+                // устанавливался вообще. Навигации у нас закрывает runtimeCaching ниже.
+                navigateFallback: null,
+                // Плагин включает их сам только при injectRegister: 'auto', а у нас регистрация
+                // ручная (Laravel не даёт Vite HTML-страницу), поэтому выставляем явно: иначе
+                // новый SW висит в waiting до закрытия всех вкладок и не берёт страницу под
+                // контроль сразу после активации.
+                skipWaiting: true,
+                clientsClaim: true,
+                // SW отдаётся из корня, а не из /build/, поэтому относительные пути внутри него
+                // (и precache-записи вида assets/app-*.js, и отдельный workbox-*.js) резолвились
+                // бы от корня и давали 404. Рантайм инлайним, precache-пути делаем абсолютными.
+                inlineWorkboxRuntime: true,
+                modifyURLPrefix: { '': '/build/' },
                 runtimeCaching: [
                     {
                         // Единственная страница, которая должна открываться офлайн (см. README,

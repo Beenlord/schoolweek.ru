@@ -9,6 +9,18 @@ use App\Http\Controllers\ProfileController;
 
 Route::get('/', HomeController::class)->name('home');
 
+// Service worker собирается в public/build/sw.js, но отдавать его нужно из корня: скоуп SW не
+// может быть шире каталога, из которого он отдан, а контролировать ему нужно /now (см. buildBase
+// и scope в vite.config.js). Файл появляется после `npm run build`.
+Route::get('/sw.js', function () {
+    abort_unless(is_file(public_path('build/sw.js')), 404);
+
+    return response()->file(public_path('build/sw.js'), [
+        'Content-Type' => 'application/javascript',
+        'Service-Worker-Allowed' => '/',
+    ]);
+})->name('sw');
+
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
