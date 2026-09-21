@@ -77,8 +77,11 @@ const friday = computed(() => dayByWeekday(5));
 const saturday = computed(() => dayByWeekday(6));
 const sunday = computed(() => dayByWeekday(7));
 
-function previewLines(day, max) {
-    return (day.content ?? '').split('\n').slice(0, max);
+// Раньше здесь резалось до ~6/3 строк «как в бумажном дневнике». Теперь клетка прокручивается,
+// поэтому отдаём все строки: видимую часть ограничивает высота самой клетки, остальное
+// доступно скроллом. Горизонтально строка по-прежнему не переносится, а обрезается (truncate).
+function contentLines(day) {
+    return (day.content ?? '').split('\n');
 }
 
 async function saveDay(day) {
@@ -202,7 +205,7 @@ function onTouchEnd(e) {
                 <template v-for="day in [monday, tuesday, wednesday]" :key="day.date">
                     <article
                         class="ruled-margin flex min-h-0 cursor-text flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
-                        :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
+                        :class="{ 'ring-2 ring-accent-dark bg-today': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:mb-1 sm:text-sm">
@@ -210,7 +213,7 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper min-h-0 flex-1 overflow-hidden [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
@@ -221,7 +224,7 @@ function onTouchEnd(e) {
                             ></textarea>
                             <div v-else class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">пусто…</div>
-                            <div v-for="(line, i) in previewLines(day, 6)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in contentLines(day)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
                         </div>
                         </div>
 
@@ -253,7 +256,7 @@ function onTouchEnd(e) {
                 <template v-for="day in [thursday, friday]" :key="day.date">
                     <article
                         class="ruled-margin flex min-h-0 cursor-text flex-col overflow-hidden rounded-lg bg-paper p-1.5 shadow-sm ring-1 ring-paper-line/70 sm:p-3"
-                        :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
+                        :class="{ 'ring-2 ring-accent-dark bg-today': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:mb-1 sm:text-sm">
@@ -261,7 +264,7 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper min-h-0 flex-1 overflow-hidden [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
@@ -272,7 +275,7 @@ function onTouchEnd(e) {
                             ></textarea>
                             <div v-else class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">пусто…</div>
-                            <div v-for="(line, i) in previewLines(day, 6)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in contentLines(day)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
                         </div>
                         </div>
 
@@ -287,7 +290,7 @@ function onTouchEnd(e) {
                         v-for="day in [saturday, sunday]"
                         :key="day.date"
                         class="ruled-margin flex min-h-0 cursor-text flex-col overflow-hidden rounded-lg bg-paper p-1 shadow-sm ring-1 ring-paper-line/70 sm:p-2.5"
-                        :class="{ 'ring-2 ring-accent-dark bg-today/60': day.isToday }"
+                        :class="{ 'ring-2 ring-accent-dark bg-today': day.isToday }"
                         @click="!editingDate && openDay(day)"
                     >
                         <header class="mb-0.5 flex items-baseline justify-between text-xs font-bold text-ink sm:text-sm">
@@ -295,7 +298,7 @@ function onTouchEnd(e) {
                             <span class="font-normal text-ink-muted">{{ day.date.slice(8, 10) }}.{{ day.date.slice(5, 7) }}</span>
                         </header>
 
-                        <div class="ruled-paper min-h-0 flex-1 overflow-hidden [--line-h:1rem] sm:[--line-h:1.5rem]">
+                        <div class="ruled-paper no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto [--line-h:1rem] sm:[--line-h:1.5rem]">
                             <textarea
                                 v-if="editingDate === day.date"
                                 v-model="day.content"
@@ -306,7 +309,7 @@ function onTouchEnd(e) {
                             ></textarea>
                             <div v-else class="text-xs text-ink-muted sm:text-sm">
                                 <div v-if="!day.content" class="italic leading-4 text-ink-muted/60 sm:leading-6">пусто…</div>
-                            <div v-for="(line, i) in previewLines(day, 3)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
+                            <div v-for="(line, i) in contentLines(day)" :key="i" class="truncate leading-4 sm:leading-6">{{ line || ' ' }}</div>
                         </div>
                         </div>
 
