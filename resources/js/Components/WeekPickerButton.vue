@@ -1,6 +1,4 @@
 <script setup>
-import { ref } from 'vue';
-
 /**
  * Кнопка, открывающая системный выбор даты, — быстрый переход к неделе.
  *
@@ -8,12 +6,20 @@ import { ref } from 'vue';
  * настройки локали (см. README, «Экран «Неделя»»). Попадать ровно в понедельник пользователю не
  * нужно — неделю из выбранного дня считает вызывающий.
  *
+ * Устройство: настоящий <input type="date"> лежит прозрачной накладкой поверх оформления и сам
+ * принимает нажатие. Так сделано из-за Safari на iOS/iPadOS — там календарь открывается, когда
+ * пользователь попадает пальцем именно в поле даты, а программный showPicker() на спрятанном
+ * элементе не срабатывает (первая версия прятала поле в один пиксель, и на iPad ничего не
+ * открывалось). Десктопный Chrome, наоборот, по клику в поле календарь сам не показывает —
+ * ему нужен showPicker(), поэтому вызываем и его, по клику уже по самому полю.
+ *
+ * Побочно так честнее с доступностью: интерактивный элемент ровно один — само поле даты, а не
+ * кнопка-обёртка рядом с ним. Оформление вынесено на корневой span и кликов не перехватывает.
+ *
  * Отдельным компонентом, потому что кнопок таких две (в шапке и в нижней панели), а поле даты у
- * каждой должно быть своё: showPicker() показывает календарь рядом с полем, и одно общее поле
- * означало бы, что календарь открывается вверху экрана независимо от того, где нажали.
+ * каждой должно быть своё: календарь показывается рядом со своим полем, и одно общее означало бы,
+ * что он открывается вверху экрана независимо от того, где нажали.
  */
-defineOptions({ inheritAttrs: false });
-
 defineProps({
     /** Дата, на которой открывается календарь, 'YYYY-MM-DD'. */
     value: { type: String, default: '' },
@@ -23,49 +29,34 @@ defineProps({
 
 const emit = defineEmits(['pick']);
 
-const inputRef = ref(null);
-
-function open() {
-    const input = inputRef.value;
-
-    if (!input) {
-        return;
-    }
-
+function openPicker(event) {
     try {
-        input.showPicker();
+        event.target.showPicker();
     } catch {
-        // Браузер без showPicker (или запретивший вызов) — обычный клик по полю открывает
-        // календарь почти везде, это запасной путь, а не ошибка.
-        input.click();
+        // Safari сам откроет календарь по фокусу, а старые браузеры showPicker не знают —
+        // в обоих случаях это не ошибка, а просто «делать больше нечего».
     }
 }
 </script>
 
 <template>
-    <span class="relative inline-flex">
-        <!-- Атрибуты вызывающего (в первую очередь классы) уходят на саму кнопку, а не на эту
-             обёртку: обёртка нужна только как система координат для поля ниже. -->
-        <button type="button" :aria-label="label" :title="label" v-bind="$attrs" @click="open">
-            <slot />
+    <!-- relative — система координат для накладки ниже; фокус подсвечиваем здесь, потому что у
+         самого поля он невидим (оно прозрачное). -->
+    <span class="relative has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent-dark">
+        <slot />
 
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="iconClass" class="shrink-0">
-                <rect x="3" y="5" width="18" height="16" rx="2" />
-                <path d="M3 10h18M8 3v4M16 3v4" />
-            </svg>
-        </button>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="iconClass" class="shrink-0">
+            <rect x="3" y="5" width="18" height="16" rx="2" />
+            <path d="M3 10h18M8 3v4M16 3v4" />
+        </svg>
 
-        <!-- Поле скрыто прозрачностью и нулевым размером, а не display:none: showPicker() требует,
-             чтобы элемент действительно отрисовывался, иначе бросает исключение.
-             tabindex/aria-hidden — чтобы у одного действия не было двух точек фокуса: клавиатурой
-             сюда попадают через кнопку выше, Enter по ней считается жестом пользователя. -->
         <input
-            ref="inputRef"
             type="date"
-            tabindex="-1"
-            aria-hidden="true"
-            class="pointer-events-none absolute bottom-0 left-1/2 h-px w-px opacity-0"
+            :aria-label="label"
+            :title="label"
+            class="absolute inset-0 cursor-pointer opacity-0"
             :value="value"
+            @click="openPicker"
             @change="emit('pick', $event.target.value)"
         >
     </span>

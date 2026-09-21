@@ -170,9 +170,14 @@ implementing schedule/day or auth features. Highlights, so context isn't lost if
   hint that it existed. Wrapping is safe for the ruled background because the wrapped lines keep the same
   `line-height`, which must stay equal to `--line-h` on `.ruled-paper`. Empty lines are rendered as a non-breaking
   space — a plain one would collapse and the line would lose its height.
-- **Week navigation**: swipe forward/back one week; the header opens the **native date picker** (a hidden
-  `<input type="date">` driven by `showPicker()`, with `.click()` as the fallback — the input must stay rendered,
-  `display: none` makes `showPicker()` throw), and the chosen day switches to the week containing it. The spec
+- **Week navigation**: swipe forward/back one week; `Components/WeekPickerButton.vue` (in the header and again in
+  the navbar) opens the **native date picker**, and the chosen day switches to the week containing it. That
+  component's shape is dictated by two browsers pulling opposite ways, so don't "simplify" it: the real
+  `<input type="date">` sits as a transparent overlay and takes the tap itself, because Safari on iOS/iPadOS only
+  opens its wheel when the user actually hits the date field — a hidden input plus `showPicker()` silently does
+  nothing there (that was the first version, and it failed on iPad). Desktop Chrome is the reverse: clicking the
+  field alone won't open the calendar, so the input's own click handler also calls `showPicker()`. Each button
+  needs its **own** input, since the picker anchors to its field. The spec
   originally called for a custom `[date–date]` week-cell calendar here; the native one was preferred because it
   is familiar on phones, scrolls years, and needs no markup of its own. Week number is counted from the start of the month
   (not ISO), and a week split across two months belongs to whichever month has the majority of its days.
