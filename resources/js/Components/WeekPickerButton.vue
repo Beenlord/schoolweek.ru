@@ -16,6 +16,12 @@
  * Побочно так честнее с доступностью: интерактивный элемент ровно один — само поле даты, а не
  * кнопка-обёртка рядом с ним. Оформление вынесено на корневой span и кликов не перехватывает.
  *
+ * Размер поля задан явно (w-full/h-full/min-w-0/appearance-none), и это не украшательство:
+ * у <input type="date"> есть своя минимальная ширина от браузера — под «дд.мм.гггг», — и на
+ * мобильных она больше 44px кнопки в нижней панели. Одного absolute inset-0 не хватает, поле
+ * вылезало вправо поверх соседних кнопок и, будучи прозрачным, перехватывало нажатия по ним:
+ * вместо перехода на следующую неделю и профиля открывался календарь.
+ *
  * Отдельным компонентом, потому что кнопок таких две (в шапке и в нижней панели), а поле даты у
  * каждой должно быть своё: календарь показывается рядом со своим полем, и одно общее означало бы,
  * что он открывается вверху экрана независимо от того, где нажали.
@@ -42,7 +48,10 @@ function openPicker(event) {
 <template>
     <!-- relative — система координат для накладки ниже; фокус подсвечиваем здесь, потому что у
          самого поля он невидим (оно прозрачное). -->
-    <span class="relative has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent-dark">
+    <!-- overflow-hidden — страховка от того, чтобы поле даты ни при каких условиях не вылезло за
+         пределы кнопки: невидимое, оно перехватывало бы нажатия по соседям. Собственную обводку
+         фокуса (ring — это box-shadow) не режет, overflow обрезает только потомков. -->
+    <span class="relative overflow-hidden has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent-dark">
         <slot />
 
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="iconClass" class="shrink-0">
@@ -54,7 +63,7 @@ function openPicker(event) {
             type="date"
             :aria-label="label"
             :title="label"
-            class="absolute inset-0 cursor-pointer opacity-0"
+            class="absolute inset-0 h-full w-full min-w-0 appearance-none cursor-pointer opacity-0"
             :value="value"
             @click="openPicker"
             @change="emit('pick', $event.target.value)"
