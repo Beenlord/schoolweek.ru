@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Auth\DeviceTokens;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -84,8 +85,14 @@ class PasswordRecoveryController extends Controller
             ]);
         }
 
-        User::where('email', $validated['email'])->firstOrFail()
-            ->update(['password' => $validated['password']]);
+        $user = User::where('email', $validated['email'])->firstOrFail();
+
+        $user->update(['password' => $validated['password']]);
+
+        // Все «запомненные» входы гасим без исключений. Пароль здесь меняет тот, кто в аккаунт
+        // ещё не вошёл, и исходить надо из худшего — что доступ к аккаунту был потерян; тогда
+        // старый recaller-cookie на чужом устройстве обязан перестать работать.
+        DeviceTokens::revokeAll($user);
 
         $request->session()->forget('password_recovery.verified_email');
 

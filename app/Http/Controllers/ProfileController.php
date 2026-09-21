@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Auth\DeviceTokens;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -43,11 +44,21 @@ class ProfileController extends Controller
             $user->secret_answer = $validated['secret_answer'];
         }
 
-        if (!empty($validated['password'])) {
+        $passwordChanged = !empty($validated['password']);
+
+        if ($passwordChanged) {
             $user->password = $validated['password'];
         }
 
         $user->save();
+
+        // Смена пароля должна прекращать чужие «запомненные» входы — иначе пароль, сменённый
+        // именно потому, что его могли узнать, ничего не меняет: старый cookie продолжал бы
+        // пускать в аккаунт. Текущее устройство не трогаем, выбрасывать самого себя сразу после
+        // смены пароля незачем.
+        if ($passwordChanged) {
+            DeviceTokens::revokeOthers($user, $request);
+        }
 
         return back();
     }

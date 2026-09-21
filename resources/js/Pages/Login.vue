@@ -2,10 +2,11 @@
 import { useForm } from '@inertiajs/vue3';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 
+// Галочки «запомнить меня» нет: вход всегда запоминает пользователя, см. комментарий
+// в AuthenticatedSessionController::store.
 const form = useForm({
     email: '',
     password: '',
-    remember: false,
 });
 
 function submit() {
@@ -37,11 +38,6 @@ function submit() {
                 >
                 <p v-if="form.errors.password" class="mt-1 text-sm text-error">{{ form.errors.password }}</p>
             </div>
-
-            <label class="flex items-center gap-2 text-sm text-ink-muted">
-                <input v-model="form.remember" type="checkbox" class="rounded border-paper-line accent-accent-dark">
-                Запомнить меня
-            </label>
 
             <button
                 type="submit"

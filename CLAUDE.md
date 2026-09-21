@@ -21,8 +21,19 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
 ## Stack
 
 - **Backend**: Laravel 13 (PHP 8.4), installed and runnable (`vendor/`, `artisan`, `app/` all present).
-- **Auth**: `laravel/sanctum` ^4.0 (token-based API auth) — installed, config published, but no auth routes/controllers
-  exist yet.
+- **Auth**: session-based, on the stock `web` guard — `laravel/sanctum` ^4.0 is present only so `auth:sanctum` on
+  `routes/api.php` accepts the app's own session (`EnsureFrontendRequestsAreStateful`); no bearer tokens are
+  issued anywhere. `config/auth.php` **is published** (it was not, before per-device remember tokens) and points
+  the `users` provider at the custom driver `eloquent-devices`.
+  **Remember-me is per device**: `users.remember_token` is gone; each login inserts a row into `remember_tokens`
+  (sha256 of the token, `user_agent`, sliding `expires_at`). `App\Auth\DeviceRememberUserProvider` overrides only
+  `retrieveByToken`/`updateRememberToken` on `EloquentUserProvider` — the recaller cookie itself stays pure
+  Laravel. `App\Models\User` keeps the token in a plain in-memory property (`getRememberToken`/`setRememberToken`
+  overridden, `getRememberTokenName()` returns `null`) so Eloquent never tries to persist a column that no longer
+  exists; a side effect that the design relies on is that a session-loaded user has an empty token, which makes
+  `SessionGuard::logout()` skip `cycleRememberToken()` and stops stray rows appearing. Revocation is explicit, via
+  `App\Auth\DeviceTokens`: logout drops **this** device, a profile password change drops **other** devices, and a
+  secret-question password reset drops **all** of them.
 - **API docs**: `dedoc/scramble` ^0.13 generates an OpenAPI document from route/validation introspection, served at
   `/docs/api` (config: `config/scramble.php`, access restricted by `RestrictedDocsAccess` middleware).
 - **Frontend**: `inertiajs/inertia-laravel` ^3.3 + Vue 3 (server-driven SPA, no separate `web/` app). Pages live in
@@ -148,20 +159,32 @@ implementing schedule/day or auth features. Highlights, so context isn't lost if
 
 ## Current state / gaps to be aware of
 
-- **Routing is essentially empty**: `routes/web.php` has a single `/` route to `HomeController` (renders the `Home`
-  Inertia page); `routes/api.php` is an empty stub (`<?php` only) — no API endpoints exist yet.
+- **Routes**: `routes/web.php` — `/` (`HomeController`), `/sw.js` (serves the built service worker from the root,
+  see PWA above), guest-only `/register`, `/login`, `/forgot-password`, and auth-only `/logout`, `/now`, `/me`.
+  `routes/api.php` — the three password-recovery steps (guest, AJAX from `/forgot-password`) plus, behind
+  `auth:sanctum`, `/weeks/{date}`, `/days/sync`, `/days/batch`, `/days/{date}` (GET/PUT). The API is AJAX over the
+  session for this app's own frontend, not a public API — `EnsureFrontendRequestsAreStateful` is prepended in
+  `bootstrap/app.php` for exactly that.
 - **No test tooling**: `composer.json` has no `require-dev` section — no PHPUnit/Pest, no `tests/` directory, no
   `phpunit.xml`. There is currently no test or lint command to run.
-- **Migrations are minimal**: only `personal_access_tokens` (Sanctum) and `sessions` exist. There is no `users`
-  migration yet (per the product spec above, it will need `name`/`email`/`password`/`timezone`/secret-question
-  fields — no surname), and no seeders/factories. No `schedule`/`days` migration exists yet either.
+- **Migrations**: `personal_access_tokens` (Sanctum), `sessions`, `users`, `days`, `add_remember_token_to_users`
+  and `move_remember_tokens_to_own_table` (which creates `remember_tokens` and drops the column the previous one
+  added). No seeders or factories. Note the pattern: schema changes go in new migrations rather than edits to
+  `create_users_table`, because the database already exists and an edited migration would never re-run.
 - **`app/helpers.php`** defines a custom `routes_path()` helper (autoloaded via `composer.json`'s `autoload.files`)
   used by `bootstrap/app.php`'s `withRouting()` call — this is non-standard Laravel and worth knowing before
   assuming route file locations follow the framework default.
-- **`Register`/`Login`/`ForgotPassword`/`Now`/`Me` Vue pages are unstyled functional skeletons**, wired to their
-  controllers (real `useForm`/fetch calls, real validation error display) but with no CSS — built specifically to
-  manually test the auth + profile-edit flow before any visual design pass. See `CHECKLIST.md` for the manual test
-  checklist covering those flows.
+- **Login is always "remember me"** — `Auth::attempt($credentials, true)` in `AuthenticatedSessionController`,
+  with no checkbox in the UI (deliberate: personal diary, installed as a PWA, should open already signed in).
+  Sessions are per device, so logging out on the phone leaves the desktop signed in — see the Auth bullet above
+  for how. `remember_tokens` rows are pruned for that user on each login; a re-login on a device that still holds
+  a valid cookie leaves one unreachable row behind until it expires, which is harmless and not worth code.
+  The table carries `user_agent`/`last_used_at` specifically so a "my devices / sign out everywhere" screen can
+  be built later — nothing renders them yet.
+- **Vue pages are styled** (Tailwind, the "тетрадный" tokens from `app.css`), including the auth pages and the
+  `/now` week grid with its page-flip animation. What is still a placeholder is the *day editor*: a plain
+  `<textarea>` per cell, not the modal WYSIWYG from the spec. See `CHECKLIST.md` for the manual test checklist
+  covering the auth + profile-edit flows.
 
 ## Config file convention (established, keep following it)
 
