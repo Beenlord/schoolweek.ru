@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { progress, usePage } from '@inertiajs/vue3';
 import debounce from 'lodash/debounce';
 import keyBy from 'lodash/keyBy';
 import { guessTimezone } from '@/dayjs.js';
@@ -122,6 +122,27 @@ onMounted(async () => {
 // номер, и любой асинхронный шаг устаревшего захода молча обрывается, не трогая экран.
 let loadToken = 0;
 
+// Полоса загрузки Inertia сама показывается только на её собственных визитах, а неделя тянется
+// обычным fetch — запускаем вручную. Счётчик нужен из-за быстрого листания: когда два запроса
+// идут внахлёст, завершение первого не должно гасить полосу, пока второй ещё в пути.
+let weekRequests = 0;
+
+function startWeekProgress() {
+    weekRequests += 1;
+
+    if (weekRequests === 1) {
+        progress.start();
+    }
+}
+
+function finishWeekProgress() {
+    weekRequests = Math.max(0, weekRequests - 1);
+
+    if (weekRequests === 0) {
+        progress.finish();
+    }
+}
+
 function applyLocalDays(rows) {
     const byDate = keyBy(rows, 'date');
 
@@ -202,6 +223,8 @@ async function loadWeek(startStr, { fromServer = true } = {}) {
         return;
     }
 
+    startWeekProgress();
+
     try {
         const response = await fetch(`/api/weeks/${startStr}`, {
             credentials: 'same-origin',
@@ -234,6 +257,10 @@ async function loadWeek(startStr, { fromServer = true } = {}) {
         if (token === loadToken) {
             weekLoaded.value = cached;
         }
+    } finally {
+        // Именно finally: внутри try есть ранний return по устаревшему токену, и без него
+        // полоса осталась бы висеть.
+        finishWeekProgress();
     }
 }
 

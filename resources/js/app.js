@@ -22,6 +22,14 @@ syncNow();
 window.addEventListener('online', syncNow);
 
 createInertiaApp({
+    // Встроенная полоса загрузки Inertia. Сама она появляется только на визитах Inertia — это вход,
+    // регистрация, сохранение профиля и первая загрузка страницы. Переключение недели идёт обычным
+    // fetch мимо роутера, поэтому там полоса запускается вручную (см. Pages/Now.vue).
+    progress: {
+        color: '#e0a800',
+        // Отдельный «волчок» в углу спорит с бумажным оформлением, хватает полосы.
+        showSpinner: false,
+    },
     resolve: (name) => {
         const pages = import.meta.glob('./Pages/**/*.vue', { eager: true });
         return pages[`./Pages/${name}.vue`];
