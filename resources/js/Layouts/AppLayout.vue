@@ -30,7 +30,7 @@ const isProfileActive = () => page.url.startsWith('/me');
              переключение недель на /now) посередине, вкладка «Профиль» — всегда справа. -->
         <!-- relative z-40: во время переворота страница (z-30) выходит за пределы main и иначе
              проезжала бы поверх панели. -->
-        <nav class="relative z-40 shrink-0 border-t-2 border-paper-line bg-paper/95 py-1.5 backdrop-blur">
+        <nav class="relative z-40 shrink-0 border-t border-paper-line/40 bg-paper/95 py-1.5 shadow-[0_-6px_16px_-10px_rgba(58,50,38,0.2)] backdrop-blur">
             <div class="mx-auto flex w-full max-w-5xl items-center justify-around px-4 sm:px-6">
                 <a
                     href="/now"
