@@ -48,8 +48,15 @@ paper school diary, built around a "week on one page" concept. See `README.md` (
   and manifest also build under `npm run dev`, not just `vite build`. Manifest content (name/description/
   theme_color/start_url `/now`/categories) is filled in for the project; `theme_color`/`background_color` are
   explicitly placeholder lemon-yellow pending real design.
-  **Still missing**: the referenced icon files (`pwa-192x192.png`/`pwa-512x512.png`) don't exist under `public/` —
-  intentionally left dangling for now, project owner will add real ones later.
+  **Icons**: `public/favicon/` holds an app-icon export (easyappicon) — Android `mipmap-*` density buckets plus an
+  iOS `AppIcon.appiconset`. Nothing in it is a web icon set (no `.ico`, no 32×32, no SVG), so the manifest and
+  `app.blade.php` reference files from it by their known sizes rather than new copies: 192×192 =
+  `android/mipmap-xxxhdpi/lemonade.png`, 512×512 = `android/ic_launcher-web.png`, `purpose: maskable` =
+  `android/playstore-icon.png` (the only asset that's opaque edge-to-edge — `ic_launcher-web.png` has transparent
+  rounded corners a square mask would expose), apple-touch-icon = `ios/AppIcon.appiconset/Icon-App-60x60@3x.png`.
+  Manifest `src` paths must stay absolute (the manifest is emitted to `public/build/`, so relative paths would
+  resolve against `/build/`). The Android XML/`Contents.json` files in the export are dead weight for the web but
+  kept so the set stays a re-importable whole.
 - **Offline sync for `/now`** (only page that's offline-capable — everything else needs the server, see Product spec
   below): `vite.config.js`'s `VitePWA({ workbox: { runtimeCaching: [...] } })` caches navigations to `/now`
   specifically (`NetworkFirst`, 3s timeout) — not app-shell-wide `navigateFallback`, since Workbox's fallback

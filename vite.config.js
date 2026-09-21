@@ -85,22 +85,32 @@ export default defineConfig({
                 // гостя оттуда уже редиректит на /login серверный middleware (см. bootstrap/app.php).
                 start_url: '/now',
                 scope: '/',
+                // Иконки лежат в public/favicon/ — это готовый экспорт иконки приложения (easyappicon),
+                // поэтому берём из него подходящие по размеру файлы, а не плодим копии в корне public/.
+                // Пути абсолютные: манифест собирается в public/build/manifest.webmanifest, и относительный
+                // src резолвился бы от /build/, а не от корня сайта.
                 icons: [
                     {
-                        src: '/pwa-192x192.png',
+                        // Android-бакеты плотности фиксированы спекой: mdpi 48 → xxxhdpi 192.
+                        src: '/favicon/android/mipmap-xxxhdpi/lemonade.png',
                         sizes: '192x192',
                         type: 'image/png',
+                        purpose: 'any',
                     },
                     {
-                        src: '/pwa-512x512.png',
+                        src: '/favicon/android/ic_launcher-web.png',
                         sizes: '512x512',
                         type: 'image/png',
+                        purpose: 'any',
                     },
                     {
-                        src: '/pwa-512x512.png',
+                        // Единственный вариант, годный под maskable: непрозрачный белый квадрат во всю
+                        // канву, рисунок — в центральной safe zone. ic_launcher-web.png для этой роли не
+                        // подходит: у него скруглённые углы прозрачные, и маска-квадрат их обнажит.
+                        src: '/favicon/android/playstore-icon.png',
                         sizes: '512x512',
                         type: 'image/png',
-                        purpose: 'any maskable',
+                        purpose: 'maskable',
                     },
                 ],
             },
