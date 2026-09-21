@@ -34,7 +34,10 @@ class RegisteredUserController extends Controller
 
         $user = User::create($validated);
 
-        Auth::login($user);
+        // С remember, как и обычный вход (см. AuthenticatedSessionController::store): иначе
+        // только что зарегистрировавшийся пользователь — единственный, кого приложение забывает
+        // по истечении сессии.
+        Auth::login($user, true);
 
         return redirect()->route('now');
     }
